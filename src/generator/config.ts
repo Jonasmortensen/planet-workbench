@@ -94,6 +94,16 @@ export const CONFIG = {
     randomLinks: [0, 2] as [number, number],
   },
 
+  /** Rumors per entity. */
+  rumors: {
+    planet: [2, 4] as [number, number],
+    country: [1, 3] as [number, number],
+    settlement: [1, 2] as [number, number],
+    organization: [1, 2] as [number, number],
+    leader: [1, 2] as [number, number],
+    notable: [0, 2] as [number, number],
+  },
+
   nativeSapientsChance: {
     /** Biosphere complex, lush, exotic or synthetic. */
     rich: 0.45,

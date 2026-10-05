@@ -251,8 +251,10 @@ function lifeEvents(rng: Rng, npc: Npc, settlement: Settlement, lifespan: number
       continue;
     }
     const type = rng.weighted(PERSONAL_EVENTS.map((t) => ({ value: t, weight: HISTORICAL_EVENT_TABLE[t].weights.npc ?? 0 })));
+    // Apprenticeships come early in life; everything else any time after adulthood.
+    const latest = type === 'apprenticeship' ? Math.min(-1, Math.round(adulthood + lifespan * 0.1)) : -1;
     events.push({
-      id: '', date: rng.int(adulthood, -1), event_type: type, involved_refs: [],
+      id: '', date: rng.int(adulthood, latest), event_type: type, involved_refs: [],
       outcome: rng.weighted(biased(EVENT_OUTCOMES, HISTORICAL_EVENT_TABLE[type].outcomes)), parent_event_id: null,
     });
   }

@@ -72,7 +72,7 @@ export function NpcPage({ npc: n }: { npc: Npc }) {
         <Section title="Motivation">
           <Field label="Goal"><MotiveView motive={n.goal} /></Field>
           <Field label="Fear"><MotiveView motive={n.fear} /></Field>
-          <Field label="Secret">{n.secret ? <MotiveView motive={n.secret} /> : <span className="muted">none yet (motives in milestone 4)</span>}</Field>
+          <Field label="Secret">{n.secret ? <><MotiveView motive={n.secret} /> <span className="chip att-rival">hidden</span></> : <span className="muted">none</span>}</Field>
         </Section>
 
         <Section title="Capabilities">
@@ -106,9 +106,9 @@ export function NpcPage({ npc: n }: { npc: Npc }) {
             {event && <><Enum value={event.type} /> <span className="muted">with</span> <RefList ids={event.involved_refs.filter((x) => x !== n.id)} /></>}
           </Field>
           <Field label="Quest hooks">
-            {n.quest_hooks.length > 0
-              ? <Table head={['Type', 'Targets', 'Reward']} rows={n.quest_hooks.map((h) => [<Enum value={h.type} />, <RefList ids={h.target_refs} />, <Enum value={h.reward_type} />])} />
-              : <span className="muted">generated in milestone 4</span>}
+            {n.quest_hooks.length > 0 && (
+              <Table head={['Type', 'Targets', 'Reward']} rows={n.quest_hooks.map((h) => [<Enum value={h.type} />, <RefList ids={h.target_refs} icon />, <Enum value={h.reward_type} />])} />
+            )}
           </Field>
           <Field label="Rumors about">{n.rumors_about.length > 0 && <RumorTable rumors={n.rumors_about} />}</Field>
         </Section>

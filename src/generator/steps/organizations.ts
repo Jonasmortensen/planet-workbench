@@ -56,7 +56,14 @@ const GOAL_REASONS: Partial<Record<GoalType, Partial<Record<MotiveReason, number
   reunite: { love: 4, loyalty: 3, guilt: 1 },
 };
 
-export function makeMotive<T extends string>(rng: Rng, type: T, targets: Partial<Pick<Motive<T>, 'target_npc_id' | 'target_org_id' | 'target_settlement_id' | 'target_country_id'>> = {}): Motive<T> {
+export interface MotiveTargets {
+  target_npc_id?: string | null;
+  target_org_id?: string | null;
+  target_settlement_id?: string | null;
+  target_country_id?: string | null;
+}
+
+export function makeMotive<T extends string>(rng: Rng, type: T, targets: MotiveTargets = {}): Motive<T> {
   const reasons = GOAL_REASONS[type as unknown as GoalType];
   const reason = reasons && Object.values(reasons).some((w) => (w ?? 0) > 0)
     ? rng.weighted(biased(MOTIVE_REASONS, reasons))

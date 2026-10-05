@@ -7,7 +7,9 @@ import { Rng } from './rng';
 import { generateCountriesStep } from './steps/countries';
 import { emptyPlanet, generatePlanetStep } from './steps/planet';
 import { generateCurrentEventsStep } from './steps/currentEvents';
+import { renderStep } from './render';
 import { generateLeadersStep } from './steps/leaders';
+import { generateMotivesStep } from './steps/motives';
 import { generateNotablesStep } from './steps/notables';
 import { generateOrganizationsStep } from './steps/organizations';
 import { generateRelationshipsStep } from './steps/relationships';
@@ -15,7 +17,7 @@ import { generateSettlementsStep } from './steps/settlements';
 import type { PlanetBundle } from './types/entities';
 import { validate } from './validate';
 
-export const GENERATOR_VERSION = '0.3.0';
+export const GENERATOR_VERSION = '0.4.0';
 
 /** Pipeline steps in order. Each receives the bundle built so far and its own stream. */
 const PIPELINE: { key: string; run: (bundle: PlanetBundle, rng: Rng) => void }[] = [
@@ -27,7 +29,8 @@ const PIPELINE: { key: string; run: (bundle: PlanetBundle, rng: Rng) => void }[]
   { key: 'leaders', run: generateLeadersStep },
   { key: 'notables', run: generateNotablesStep },
   { key: 'relationships', run: generateRelationshipsStep },
-  // Milestone 4: motives and hooks, render
+  { key: 'motives', run: generateMotivesStep },
+  { key: 'render', run: renderStep },
 ];
 
 export function generatePlanet(seed: string): PlanetBundle {

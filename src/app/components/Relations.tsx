@@ -23,7 +23,7 @@ export function RelationTable({ relations, empty = 'none' }: { relations: Relati
 
 /** A structured motive: type, reason and every target it points at. */
 export function MotiveView({ motive }: { motive: Motive<string> | null }) {
-  if (!motive) return <span className="muted">generated in milestone 4</span>;
+  if (!motive) return <span className="muted">none</span>;
   const targets = [motive.target_npc_id, motive.target_org_id, motive.target_settlement_id, motive.target_country_id].filter((x): x is string => !!x);
   return (
     <span className="motive">

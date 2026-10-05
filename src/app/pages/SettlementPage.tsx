@@ -79,16 +79,17 @@ export function SettlementPage({ settlement: s }: { settlement: Settlement }) {
           <Field label="Garrison"><Scale value={s.garrison_strength} scale={GARRISON_STRENGTHS} /></Field>
         </Section>
 
-        <Section title="Districts">
-          <Table head={['Name', 'Type']} rows={s.districts.map((d) => [d.name, <Enum value={d.type} />])} />
+        <Section title="Districts" wide>
+          <Table head={['Name', 'Type', 'Description']} rows={s.districts.map((d) => [d.name, <Enum value={d.type} />, <span className="small">{d.description}</span>])} />
         </Section>
 
-        <Section title="Points of interest">
+        <Section title="Points of interest" wide>
           <Table
-            head={['Name', 'Type', 'Owner']}
+            head={['Name', 'Type', 'Owner', 'Description']}
             rows={s.points_of_interest.map((poi) => [
               <span title={poi.id}>{poi.name}</span>, <Enum value={poi.type} />,
               poi.owner_npc_id ? <Ref id={poi.owner_npc_id} /> : <span className="muted">-</span>,
+              <span className="small">{poi.description}</span>,
             ])}
           />
         </Section>

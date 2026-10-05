@@ -20,7 +20,7 @@ describe('validation across 200 sequential seeds', () => {
   });
 
   it('reports no settlement, country, history, leadership or NPC warnings', () => {
-    const prefixes = ['settlement.', 'country.', 'history.', 'leadership.', 'org.', 'npc.', 'poi.'];
+    const prefixes = ['settlement.', 'country.', 'history.', 'leadership.', 'org.', 'npc.', 'poi.', 'prose.', 'rumor.', 'motive.', 'hook.', 'secret.'];
     const found = bundles.flatMap((b) => b.validation
       .filter((i) => prefixes.some((p) => i.code.startsWith(p)))
       .map((i) => `seed ${b.seed}: [${i.code}] ${i.entity_ref}: ${i.message}`));

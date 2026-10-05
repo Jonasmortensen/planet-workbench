@@ -6,6 +6,7 @@ import type { PlanetBundle, ValidationIssue } from '../types/entities';
 import { kindOf, resolveEntity } from '../types/ids';
 import { checkLeadership, checkLeadershipFit, checkNpcLinks, checkOrgSymmetry, checkOrganizations, requiredNpcFields } from './people';
 import { collectRefs, eventIndex } from './refs';
+import { checkMotives, checkProse, checkRumors } from './story';
 
 export { collectRefs, eventIndex } from './refs';
 export type { RefSite } from './refs';
@@ -286,8 +287,8 @@ const checkEmptyFields: Check = (bundle) => {
 /** All checks, in report order. Later milestones append to this list. */
 export const CHECKS: Check[] = [
   checkIds, checkRefs, checkShares, checkPlanetStructure, checkCapitals, checkSymmetry, checkOrgSymmetry, checkPopulations,
-  checkLeadership, checkOrganizations, checkNpcLinks,
-  checkPhysical, checkSettlements, checkHistory, checkLeadershipFit, checkEmptyFields,
+  checkLeadership, checkOrganizations, checkNpcLinks, checkRumors, checkProse,
+  checkPhysical, checkSettlements, checkHistory, checkLeadershipFit, checkMotives, checkEmptyFields,
 ];
 
 export function validate(bundle: PlanetBundle): ValidationIssue[] {

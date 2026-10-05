@@ -203,7 +203,7 @@ function targetOrgGoals(bundle: PlanetBundle, rng: Rng): void {
  * The mirror entry on B uses the inverse type (parent <-> child, mentor <-> student,
  * employer <-> employee) and the same note.
  */
-function link(rng: Rng, a: Npc, b: Npc, typeOfBForA: RelationshipType): boolean {
+export function link(rng: Rng, a: Npc, b: Npc, typeOfBForA: RelationshipType): boolean {
   const cap = CONFIG.relationships.maxPerNpc;
   if (a.id === b.id || a.relationships.some((x) => x.npc_id === b.id)) return false;
   if (a.relationships.length >= cap || b.relationships.length >= cap) return false;

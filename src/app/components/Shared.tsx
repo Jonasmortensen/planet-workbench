@@ -30,11 +30,11 @@ export function HistoryTable({ events }: { events: HistoricalEvent[] }) {
 export function RumorTable({ rumors }: { rumors: Rumor[] }) {
   return (
     <Table
-      head={['About', 'Claim', 'Target', 'True?']}
+      head={['Claim', 'Involving', 'Truth']}
       rows={rumors.map((r) => [
-        <Ref id={r.subject_ref} />, <Enum value={r.claim_type} />,
-        r.target_ref ? <Ref id={r.target_ref} /> : <span className="muted">-</span>,
-        r.is_true ? 'true' : <span className="muted">false</span>,
+        <span title={`subject: ${r.subject_ref}`}><Enum value={r.claim_type} /></span>,
+        r.target_ref ? <Ref id={r.target_ref} icon /> : <span className="muted">-</span>,
+        r.is_true ? <span className="chip att-allied">true</span> : <span className="chip att-hostile">false</span>,
       ])}
     />
   );
@@ -43,7 +43,7 @@ export function RumorTable({ rumors }: { rumors: Rumor[] }) {
 /** Rendered prose block shown at the top of every entity page. */
 export function Prose({ tagline, description }: { tagline: string; description: string }) {
   if (!tagline && !description) {
-    return <div className="prose"><p className="muted">Tagline and description are rendered from structured data in milestone 4.</p></div>;
+    return <div className="prose"><p className="muted">No prose rendered.</p></div>;
   }
   return <div className="prose"><p className="tagline">{tagline}</p><p>{description}</p></div>;
 }
