@@ -291,6 +291,13 @@ export const CHECKS: Check[] = [
   checkPhysical, checkSettlements, checkHistory, checkLeadershipFit, checkMotives, checkEmptyFields,
 ];
 
+/** Run every check. A check that throws on malformed data is reported as an error rather than aborting validation. */
 export function validate(bundle: PlanetBundle): ValidationIssue[] {
-  return CHECKS.flatMap((check) => check(bundle));
+  return CHECKS.flatMap((check) => {
+    try {
+      return check(bundle);
+    } catch (err) {
+      return [error('validator.crash', bundle.planet.id, `Check ${check.name || 'unnamed'} failed: ${err instanceof Error ? err.message : String(err)}`)];
+    }
+  });
 }

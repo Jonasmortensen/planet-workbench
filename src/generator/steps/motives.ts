@@ -336,7 +336,8 @@ function generateRumors(bundle: PlanetBundle, rng: Rng): void {
     const claims = CLAIMS_BY_KIND[kindOf(subjectId)!] ?? [];
     const pool = claims.map((claim) => {
       const truth = rumorTruth(bundle, subjectId, claim);
-      return { claim, truth, weight: truth ? 3 : 1 };
+      // True rumors are more useful in play, so they are favored when the data supports them.
+      return { claim, truth, weight: truth ? 6 : 1 };
     });
     const chosen = r.weightedSample(pool.map((p) => ({ value: p, weight: p.weight })), count);
     return chosen.map((p) => ({

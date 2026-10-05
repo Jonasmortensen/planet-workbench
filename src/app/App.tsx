@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { generatePlanet } from '../generator';
 import { collectRefs } from '../generator/validate';
-import { Sidebar } from './components/Sidebar';
+import { Sidebar, VALIDATION_VIEW } from './components/Sidebar';
 import { BundleContext, buildReverseIndex, type BundleContextValue } from './context';
 import { EntityPage } from './pages/EntityPage';
 import { randomSeed, useRoute } from './route';
@@ -23,7 +23,18 @@ export function App() {
     referencedBy,
     selectedId: route.entityId,
     open: (entityId) => navigate({ seed: route.seed, entityId }),
+    goSeed: (seed) => navigate({ seed, entityId: null }),
   }), [bundle, referencedBy, route.entityId, route.seed, navigate]);
+
+  const exportJson = () => {
+    const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `planet-${bundle.seed.replace(/[^\w-]+/g, '_')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   // Scroll the main panel to the top when the selection changes.
   const mainRef = useRef<HTMLElement>(null);
@@ -52,8 +63,9 @@ export function App() {
             </button>
           </form>
           <div className="topbar-status">
-            <span className={errors ? 'badge badge-error' : 'badge badge-ok'} title="Validation errors">{errors} errors</span>
-            <span className={warnings ? 'badge badge-warn' : 'badge badge-ok'} title="Validation warnings">{warnings} warnings</span>
+            <button className={errors ? 'badge badge-error' : 'badge badge-ok'} title="Open the validation panel" onClick={() => ctx.open(VALIDATION_VIEW)}>{errors} errors</button>
+            <button className={warnings ? 'badge badge-warn' : 'badge badge-ok'} title="Open the validation panel" onClick={() => ctx.open(VALIDATION_VIEW)}>{warnings} warnings</button>
+            <button className="btn btn-ghost btn-small" onClick={exportJson} title="Download the whole planet bundle as JSON">Export JSON</button>
             <span className="muted small">
               {Object.keys(bundle.countries).length} countries · {Object.keys(bundle.settlements).length} settlements · {ms.toFixed(0)} ms · v{bundle.generator_version}
             </span>
@@ -63,19 +75,6 @@ export function App() {
           <Sidebar />
           <main className="main" ref={mainRef}>
             <EntityPage />
-            {bundle.validation.length > 0 && (
-              <section className="section validation-preview">
-                <h3 className="section-title">Validation</h3>
-                <ul className="issue-list">
-                  {bundle.validation.map((v, i) => (
-                    <li key={i} className={`issue issue-${v.severity}`}>
-                      <span className="issue-sev">{v.severity}</span> <code>{v.code}</code>{' '}
-                      <a href="#" onClick={(e) => { e.preventDefault(); ctx.open(v.entity_ref === 'planet' ? null : v.entity_ref); }}>{v.entity_ref}</a>: {v.message}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
           </main>
         </div>
       </div>

@@ -64,6 +64,9 @@ export const checkLeadershipFit: Check = (bundle) => {
         issues.push(warning('leadership.secret', n.id, `Hidden leadership of ${l.entity_id} has no matching secret`));
       }
     }
+    // Entries pointing at missing entities are reported by the reference check.
+    if (n.leads.some((l) => (l.entity_type === 'organization' && !bundle.organizations[l.entity_id])
+      || (l.entity_type === 'settlement' && !bundle.settlements[l.entity_id]))) continue;
     if (n.leads.length > 1) {
       // Automatic combinations (state organizations, a unified world's ruler) are exempt from the scope rule.
       const ordinary = n.leads.filter((l) => !(l.entity_type === 'organization' && bundle.organizations[l.entity_id].state_role !== 'none')

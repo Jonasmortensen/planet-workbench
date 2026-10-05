@@ -8,6 +8,8 @@ export interface BundleContextValue {
   referencedBy: Map<string, RefSite[]>;
   /** Navigate to an entity page (null = planet). */
   open: (entityId: string | null) => void;
+  /** Switch to another seed (its planet page). */
+  goSeed: (seed: string) => void;
   selectedId: string | null;
 }
 

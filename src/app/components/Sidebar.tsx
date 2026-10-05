@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { Npc, PlanetBundle } from '../../generator';
+import type { EntityKind, Npc, PlanetBundle } from '../../generator';
+import { SearchBox, SearchResults } from './Search';
 import { useBundle } from '../context';
 import { formatPopulation } from '../format';
 import { KIND_ICON } from './Ref';
 
 export const RELATIONS_VIEW = 'relations';
+export const VALIDATION_VIEW = 'validation';
+export const BATCH_VIEW = 'batch';
 
 /** Ancestors of an entity in the tree, so the selected entity is always visible. */
 function ancestors(bundle: PlanetBundle, id: string | null): string[] {
@@ -25,6 +28,11 @@ function ancestors(bundle: PlanetBundle, id: string | null): string[] {
 export function Sidebar() {
   const { bundle, selectedId, open } = useBundle();
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(['countries']));
+  const [query, setQuery] = useState('');
+  const [kind, setKind] = useState<'all' | EntityKind>('all');
+  const searching = query.trim() !== '' || kind !== 'all';
+  const errors = bundle.validation.filter((v) => v.severity === 'error').length;
+  const warnings = bundle.validation.length - errors;
 
   // Reveal the selected entity, and reset when the planet changes.
   useEffect(() => {
@@ -67,11 +75,16 @@ export function Sidebar() {
 
   return (
     <nav className="sidebar">
+      <SearchBox query={query} kind={kind} onQuery={setQuery} onKind={setKind} />
+      {searching ? <SearchResults query={query} kind={kind} /> : (<>
       <TreeItem
         icon={KIND_ICON.planet} label={bundle.planet.name} selected={selectedId === null}
         onSelect={() => open(null)} meta={formatPopulation(bundle.planet.population)}
       />
       <TreeItem icon="⇄" label="Relations" selected={selectedId === RELATIONS_VIEW} onSelect={() => open(RELATIONS_VIEW)} />
+      <TreeItem icon="✓" label="Validation" selected={selectedId === VALIDATION_VIEW} onSelect={() => open(VALIDATION_VIEW)}
+        meta={`${errors} err · ${warnings} warn`} />
+      <TreeItem icon="▤" label="Batch stats" selected={selectedId === BATCH_VIEW} onSelect={() => open(BATCH_VIEW)} />
       <TreeGroup label={`Countries (${countries.length})`} open={expanded.has('countries')} onToggle={() => toggle('countries')}>
         {countries.map((c) => (
           <TreeItem
@@ -132,6 +145,7 @@ export function Sidebar() {
           </TreeGroup>
         ))}
       </TreeGroup>
+      </>)}
     </nav>
   );
 }

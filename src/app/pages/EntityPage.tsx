@@ -1,6 +1,8 @@
 import { kindOf } from '../../generator';
 import { useBundle } from '../context';
-import { RELATIONS_VIEW } from '../components/Sidebar';
+import { BATCH_VIEW, RELATIONS_VIEW, VALIDATION_VIEW } from '../components/Sidebar';
+import { BatchPage } from './BatchPage';
+import { ValidationPage } from './ValidationPage';
 import { CountryPage } from './CountryPage';
 import { NpcPage } from './NpcPage';
 import { OrganizationPage } from './OrganizationPage';
@@ -14,6 +16,8 @@ export function EntityPage() {
   const { bundle, selectedId } = useBundle();
   if (!selectedId) return <PlanetPage />;
   if (selectedId === RELATIONS_VIEW) return <RelationsPage />;
+  if (selectedId === VALIDATION_VIEW) return <ValidationPage />;
+  if (selectedId === BATCH_VIEW) return <BatchPage />;
   switch (kindOf(selectedId)) {
     case 'country':
       if (bundle.countries[selectedId]) return <CountryPage key={selectedId} country={bundle.countries[selectedId]} />;
