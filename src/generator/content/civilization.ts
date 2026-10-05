@@ -114,4 +114,4 @@ export const TECH_GOODS: [TradeGood[], TradeGood[], TradeGood[]] = [
 ];
 
 /** Population density per km² of habitable land, by tech level. */
-export const DENSITY_BY_TECH = [1.5, 4, 8, 15, 35, 60, 80, 100, 120, 140, 150];
+export const DENSITY_BY_TECH = [0.05, 0.3, 1.5, 5, 15, 40, 70, 100, 120, 140, 150];

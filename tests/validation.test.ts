@@ -19,6 +19,25 @@ describe('validation across 200 sequential seeds', () => {
     expect(unrecorded).toEqual([]);
   });
 
+  it('reports no settlement, country, history, leadership or NPC warnings', () => {
+    const prefixes = ['settlement.', 'country.', 'history.', 'leadership.', 'org.', 'npc.', 'poi.'];
+    const found = bundles.flatMap((b) => b.validation
+      .filter((i) => prefixes.some((p) => i.code.startsWith(p)))
+      .map((i) => `seed ${b.seed}: [${i.code}] ${i.entity_ref}: ${i.message}`));
+    expect(found).toEqual([]);
+  });
+
+  it('gives every country 3 to 8 settlements and exactly one capital', () => {
+    for (const b of bundles) {
+      for (const c of Object.values(b.countries)) {
+        const settlements = Object.values(b.settlements).filter((s) => s.country_id === c.id);
+        expect(settlements.length).toBeGreaterThanOrEqual(3);
+        expect(settlements.length).toBeLessThanOrEqual(8);
+        expect(settlements.filter((s) => s.settlement_type === 'capital').map((s) => s.id)).toEqual([c.capital_settlement_id]);
+      }
+    }
+  });
+
   it('reports no empty required fields', () => {
     const empty = bundles.flatMap((b) => b.validation
       .filter((i) => i.code === 'empty.field')

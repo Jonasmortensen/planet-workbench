@@ -1,6 +1,8 @@
 import type {
-  AtmospherePressure, Biome, Biosphere, GovernmentType, PlanetType, SettlementOrigin, SizeClass,
+  AtmospherePressure, Biome, Biosphere, BodyPlan, GalacticConnectivity, GovernmentType, PlanetType, SettlementOrigin,
+  SizeClass, SpecialAbilityType,
 } from '../types/enums';
+import { CONNECTIVITY_LEVELS } from '../types/enums';
 
 /**
  * Tags that restrict where a content entry may be used. Every field is
@@ -32,6 +34,12 @@ export interface Constraints {
   origins?: SettlementOrigin[];
   requiresPrecursors?: boolean;
   governments?: GovernmentType[];
+  /** The planet must have at least one of these special abilities. */
+  requiresAbility?: SpecialAbilityType[];
+  /** At least one present species must have one of these body plans. */
+  bodyPlans?: BodyPlan[];
+  /** Minimum galactic connectivity. */
+  minConnectivity?: GalacticConnectivity;
 }
 
 export interface ConstraintContext {
@@ -49,6 +57,9 @@ export interface ConstraintContext {
   origin?: SettlementOrigin;
   precursors?: boolean;
   government?: GovernmentType;
+  abilities?: readonly SpecialAbilityType[];
+  bodyPlans?: readonly BodyPlan[];
+  connectivity?: GalacticConnectivity;
 }
 
 const SIZE_ORDER: SizeClass[] = ['tiny', 'small', 'medium', 'large', 'huge'];
@@ -78,6 +89,10 @@ export function meets(c: Constraints | undefined, ctx: ConstraintContext): boole
   if (ctx.origin !== undefined && c.origins && !c.origins.includes(ctx.origin)) return false;
   if (ctx.precursors !== undefined && c.requiresPrecursors && !ctx.precursors) return false;
   if (ctx.government !== undefined && c.governments && !c.governments.includes(ctx.government)) return false;
+  if (ctx.abilities !== undefined && c.requiresAbility && !c.requiresAbility.some((a) => ctx.abilities!.includes(a))) return false;
+  if (ctx.bodyPlans !== undefined && c.bodyPlans && !c.bodyPlans.some((b) => ctx.bodyPlans!.includes(b))) return false;
+  if (ctx.connectivity !== undefined && c.minConnectivity
+    && CONNECTIVITY_LEVELS.indexOf(ctx.connectivity) < CONNECTIVITY_LEVELS.indexOf(c.minConnectivity)) return false;
   return true;
 }
 

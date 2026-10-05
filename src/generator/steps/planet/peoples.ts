@@ -8,13 +8,13 @@ import { normalizeShares, type Rng } from '../../rng';
 import type { Language, PlanetBundle, Religion, Species } from '../../types/entities';
 import {
   BIOLOGY_TYPES, BODY_PLANS, GENDER_SYSTEMS, LANGUAGE_STYLES, RELIGION_KINDS, RELIGION_TENETS,
-  type LanguageOrigin, type LanguageStyle,
+  type LanguageOrigin, type LanguageStyle, type ReligionKind,
 } from '../../types/enums';
 import { makeId } from '../../types/ids';
 import { biased } from '../util';
 import { planetContext } from './geography';
 
-function addLanguage(
+export function addLanguage(
   bundle: PlanetBundle, rng: Rng, style: LanguageStyle, origin: LanguageOrigin, speakers: string[],
 ): Language {
   const id = makeId('language', Object.keys(bundle.languages).length);
@@ -150,6 +150,28 @@ export function rollPeoples(bundle: PlanetBundle, rng: Rng): void {
   rollReligions(bundle, rng.fork('religions'));
 }
 
+/** Create a faith of the given kind, named in the given language, and add it to the bundle. */
+export function addReligion(bundle: PlanetBundle, rng: Rng, kind: ReligionKind, lang: Language): Religion {
+  const id = makeId('religion', Object.keys(bundle.religions).length);
+  const r = rng.fork(id);
+  const def = RELIGION_KIND_TABLE[kind];
+  const ph = lang.phonology;
+  const focus = def.hasFocus ? makeGivenName(ph, r.fork('focus'), 'none') : null;
+  const name = fillPattern(pickPattern(r, RELIGION_NAME_PATTERNS[def.family]), {
+    focus: () => focus ?? makeRoot(ph, r, { maxSyllables: 2 }),
+    root: () => makeRoot(ph, r, { maxSyllables: 2 }),
+    adjective: () => r.pick(ADJECTIVES),
+    noun: () => r.pick(NOUNS),
+  });
+  const tenets = r.weightedSample(biased(RELIGION_TENETS, def.tenets), r.int(2, 3));
+  const origin = lang.origin === 'creole' || (bundle.planet.settlement_origin === 'mixed' && r.chance(0.2))
+    ? 'syncretic'
+    : lang.origin === 'native' ? 'native' : 'imported';
+  const religion: Religion = { id, name, kind, tenets, focus_name: focus, origin, church_org_id: null };
+  bundle.religions[id] = religion;
+  return religion;
+}
+
 function rollReligions(bundle: PlanetBundle, rng: Rng): void {
   const p = bundle.planet;
   const ctx = planetContext(p);
@@ -160,26 +182,9 @@ function rollReligions(bundle: PlanetBundle, rng: Rng): void {
   const allLanguages = Object.values(bundle.languages);
 
   const religions: Religion[] = kinds.map((kind, i) => {
-    const id = makeId('religion', i);
-    const r = rng.fork(id);
-    const def = RELIGION_KIND_TABLE[kind];
+    const r = rng.fork(makeId('religion', i));
     const lang = r.chance(0.75) ? r.pick(dominant) : r.pick(allLanguages);
-    const ph = lang.phonology;
-    const focus = def.hasFocus ? makeGivenName(ph, r.fork('focus'), 'none') : null;
-    const name = fillPattern(pickPattern(r, RELIGION_NAME_PATTERNS[def.family]), {
-      focus: () => focus ?? makeRoot(ph, r, { maxSyllables: 2 }),
-      root: () => makeRoot(ph, r, { maxSyllables: 2 }),
-      adjective: () => r.pick(ADJECTIVES),
-      noun: () => r.pick(NOUNS),
-    });
-    const tenetPool = biased(RELIGION_TENETS, def.tenets);
-    const tenets = r.weightedSample(tenetPool, r.int(2, 3));
-    const origin = lang.origin === 'creole' || (p.settlement_origin === 'mixed' && r.chance(0.2))
-      ? 'syncretic'
-      : lang.origin === 'native' ? 'native' : 'imported';
-    const religion: Religion = { id, name, kind, tenets, focus_name: focus, origin, church_org_id: null };
-    bundle.religions[id] = religion;
-    return religion;
+    return addReligion(bundle, r, kind, lang);
   });
 
   // Shares of the population; the remainder is unaffiliated.

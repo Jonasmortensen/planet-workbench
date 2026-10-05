@@ -502,6 +502,25 @@ export type Visibility = Of<typeof VISIBILITY_LEVELS>;
 export const LEGALITY_LEVELS = e('official', 'tolerated', 'outlawed');
 export type Legality = Of<typeof LEGALITY_LEVELS>;
 
+export const ORG_ACTIVITIES = e(
+  'trade', 'smuggling', 'worship', 'charity', 'research', 'teaching', 'extortion', 'assassination', 'espionage',
+  'lobbying', 'protection', 'mercenary_contracts', 'manufacturing', 'mining_operations', 'banking', 'recruitment_drives',
+  'propaganda', 'sabotage', 'rituals', 'healing', 'exploration', 'relic_hunting', 'data_theft', 'pilgrimages',
+  'arbitration', 'patrols', 'festivals', 'moneylending',
+);
+export type OrgActivity = Of<typeof ORG_ACTIVITIES>;
+
+export const ORG_RESOURCES = e(
+  'wealth', 'land', 'ships', 'weapons', 'informants', 'relics', 'archives', 'political_favors', 'fanatical_followers',
+  'safehouses', 'trade_routes', 'laboratories', 'fortresses', 'blackmail_material', 'legal_charters', 'mercenaries',
+  'data_networks', 'sacred_sites', 'monopoly_rights', 'trained_beasts',
+);
+export type OrgResource = Of<typeof ORG_RESOURCES>;
+
+/** Special ties between an organization and the state. */
+export const STATE_ROLES = e('none', 'state_church', 'royal_house', 'state_corporation');
+export type StateRole = Of<typeof STATE_ROLES>;
+
 export const RECRUITMENT_METHODS = e(
   'open', 'invitation', 'birthright', 'apprenticeship', 'coercion', 'examination', 'initiation_rite',
   'purchase', 'conscription',

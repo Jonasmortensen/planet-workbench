@@ -28,8 +28,8 @@ export function makeFamilyName(ph: Phonology, rng: Rng): string {
 }
 
 /** A bare root with no suffix, for compound names ("the {root} Canyon"). */
-export function makeBareName(ph: Phonology, rng: Rng): string {
-  return makeRoot(ph, rng, { minSyllables: 1, maxSyllables: 3 });
+export function makeBareName(ph: Phonology, rng: Rng, maxSyllables = 3): string {
+  return makeRoot(ph, rng, { minSyllables: 1, maxSyllables });
 }
 
 export interface PersonName {

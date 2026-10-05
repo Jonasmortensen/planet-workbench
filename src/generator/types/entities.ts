@@ -275,6 +275,8 @@ export interface Country {
   motto: string;
 
   area_share: number;
+  /** Normalized planet-surface coordinates of the country's heartland, in [0, 1]. */
+  center: { x: number; y: number };
   biomes: BiomeShare[];
   capital_settlement_id: SettlementId | null;
   neighbor_ids: CountryId[];
@@ -410,6 +412,10 @@ export interface Organization {
   motto: string;
 
   org_type: E.OrgType;
+  /** Official tie to the home country (a theocracy's church, a monarch's house, a corporate state's corporation). */
+  state_role: E.StateRole;
+  /** The faith this organization serves (churches, cults, monastic orders). */
+  religion_id: ReligionId | null;
 
   scope_level: E.ScopeLevel;
   home_ref: EntityId;
@@ -428,8 +434,8 @@ export interface Organization {
 
   stated_goal: Motive<E.GoalType>;
   true_goal: Motive<E.GoalType>;
-  activities: string[];
-  resources: string[];
+  activities: E.OrgActivity[];
+  resources: E.OrgResource[];
 
   relations: Relation[];
 
@@ -471,6 +477,8 @@ export interface Npc {
   family_name: string;
   title_or_epithet: string;
   species_id: SpeciesId;
+  /** Native tongue; names follow its style. */
+  language_id: LanguageId;
   age: number;
   age_category: E.AgeCategory;
   gender: E.Gender;
@@ -493,8 +501,11 @@ export interface Npc {
   speech_style: E.SpeechStyle;
   disposition_to_outsiders: E.Disposition;
 
-  goal: Motive<E.GoalType>;
-  fear: Motive<E.FearType>;
+  /** Filled by the motives step (milestone 4). */
+  goal: Motive<E.GoalType> | null;
+  /** Filled by the motives step (milestone 4). */
+  fear: Motive<E.FearType> | null;
+  /** A hidden leadership role is recorded here as soon as leaders are assigned. */
   secret: Motive<E.SecretType> | null;
 
   skills: E.Skill[];

@@ -1,21 +1,18 @@
 import { FACTION_TABLE, TECH_LEVEL_LABELS } from '../../generator/content';
 import {
-  CONNECTIVITY_LEVELS, DANGER_LEVELS, LAW_LEVELS, SIZE_CLASSES, STABILITY_LEVELS, WEALTH_LEVELS,
-  ATMOSPHERE_PRESSURES, SEASONALITY_LEVELS, entityName, type PlanetBundle,
+  ATMOSPHERE_PRESSURES, CONNECTIVITY_LEVELS, DANGER_LEVELS, LAW_LEVELS, SEASONALITY_LEVELS, SIZE_CLASSES,
+  STABILITY_LEVELS, WEALTH_LEVELS,
 } from '../../generator';
 import { Enum, EnumList, Field, RawJson, Scale, Section, ShareBar, Table } from '../components/Fields';
-import { capitalize, formatHours, formatPopulation, formatTemp, formatYearsAgo } from '../format';
+import { Ref, RefList } from '../components/Ref';
+import { HistoryTable, Prose, ReligionTable, RumorTable, SpeciesTable } from '../components/Shared';
+import { useBundle } from '../context';
+import { capitalize, formatHours, formatPopulation, formatTemp } from '../format';
 
-/** Entity reference. Becomes a clickable link once entity pages exist (milestone 2). */
-function Ref({ bundle, id }: { bundle: PlanetBundle; id: string }) {
-  return <span className="ref" title={id}>{entityName(bundle, id)}</span>;
-}
-
-export function PlanetPage({ bundle }: { bundle: PlanetBundle }) {
+export function PlanetPage() {
+  const { bundle } = useBundle();
   const p = bundle.planet;
-  const species = Object.values(bundle.species);
-  const languages = Object.values(bundle.languages);
-  const religions = Object.values(bundle.religions);
+  const countries = Object.values(bundle.countries);
 
   return (
     <article className="entity-page">
@@ -26,11 +23,7 @@ export function PlanetPage({ bundle }: { bundle: PlanetBundle }) {
           {p.native_name !== p.name && <>Native name <strong>{p.native_name}</strong> · </>}
           {p.star_system} system, orbit {p.orbital_position}
         </div>
-        <div className="prose">
-          {p.tagline || p.description
-            ? <><p className="tagline">{p.tagline}</p><p>{p.description}</p></>
-            : <p className="muted">Tagline and description are rendered from structured data in milestone 4.</p>}
-        </div>
+        <Prose tagline={p.tagline} description={p.description} />
       </header>
 
       <div className="sections">
@@ -91,11 +84,9 @@ export function PlanetPage({ bundle }: { bundle: PlanetBundle }) {
 
         <Section title="Life">
           <Field label="Biosphere"><Enum value={p.biosphere} /></Field>
-          <Field label="Native sapients">{p.native_sapients ? <>Yes: <Ref bundle={bundle} id={p.native_species_id!} /></> : 'No'}</Field>
+          <Field label="Native sapients">{p.native_sapients ? <>Yes: <Ref id={p.native_species_id!} /></> : 'No'}</Field>
           <Field label="Settlement origin"><Enum value={p.settlement_origin} /></Field>
-          <Field label="Species">
-            <Table head={['Species', 'Share']} rows={p.species.map((s) => [<Ref bundle={bundle} id={s.species_id} />, <ShareBar share={s.share} />])} />
-          </Field>
+          <Field label="Species"><SpeciesTable shares={p.species} /></Field>
         </Section>
 
         <Section title="Civilization">
@@ -106,35 +97,27 @@ export function PlanetPage({ bundle }: { bundle: PlanetBundle }) {
           <Field label="World government">
             {p.world_government && (
               <>{p.world_government.name}, led by the {p.world_government.leader_title}
-                {p.world_government.leader_npc_id
-                  ? <> (<Ref bundle={bundle} id={p.world_government.leader_npc_id} />)</>
-                  : <span className="muted"> (leader assigned in milestone 3)</span>}</>
+                {p.world_government.leader_npc_id && <> (<Ref id={p.world_government.leader_npc_id} />)</>}</>
             )}
           </Field>
           <Field label="Stability"><Scale value={p.stability} scale={STABILITY_LEVELS} /></Field>
-          <Field label="Dominant languages">
-            {p.dominant_languages.map((id, i) => <span key={id}>{i > 0 && ', '}<Ref bundle={bundle} id={id} /></span>)}
-          </Field>
-          <Field label="Religions and ideologies">
-            <Table
-              head={['Faith', 'Share']}
-              rows={p.dominant_religions_or_ideologies.map((r) => [<Ref bundle={bundle} id={r.religion_id} />, <ShareBar share={r.share} />])}
-            />
-          </Field>
+          <Field label="Dominant languages"><RefList ids={p.dominant_languages} /></Field>
+          <Field label="Religions and ideologies"><ReligionTable shares={p.dominant_religions_or_ideologies} /></Field>
         </Section>
 
-        <Section title="History">
+        <Section title="Countries" wide>
           <Table
-            head={['When', 'Event', 'Outcome', 'Involved']}
-            rows={p.history.map((e) => [
-              formatYearsAgo(e.date),
-              <Enum value={e.event_type} />,
-              <Enum value={e.outcome} />,
-              e.involved_refs.length
-                ? e.involved_refs.map((r, i) => <span key={r}>{i > 0 && ', '}<Ref bundle={bundle} id={r} /></span>)
-                : <span className="muted">none</span>,
+            head={['Country', 'Government', 'Ruler', 'Capital', 'Population', 'Area', 'Stability', 'Tech']}
+            rows={countries.map((c) => [
+              <Ref id={c.id} />, <Enum value={c.government_type} />, c.ruler_npc_id ? <Ref id={c.ruler_npc_id} /> : '-',
+              c.capital_settlement_id ? <Ref id={c.capital_settlement_id} /> : '-',
+              formatPopulation(c.population), <ShareBar share={c.area_share} />, <Enum value={c.stability} />, c.tech_level,
             ])}
           />
+        </Section>
+
+        <Section title="History" wide>
+          <HistoryTable events={p.history} />
         </Section>
 
         <Section title="Economy and galactic relations">
@@ -171,35 +154,8 @@ export function PlanetPage({ bundle }: { bundle: PlanetBundle }) {
           </Field>
         </Section>
 
-        <Section title="Peoples" wide>
-          <Field label="Species">
-            <Table
-              head={['Name', 'Origin', 'Biology', 'Body plan', 'Genders', 'Lifespan', 'Comfort']}
-              rows={species.map((s) => [
-                <span title={s.id}>{s.name} <span className="muted">({s.plural_name})</span></span>,
-                <Enum value={s.origin} />, <Enum value={s.biology} />, <Enum value={s.body_plan} />, <Enum value={s.gender_system} />,
-                `${s.lifespan_years} y`, `${formatTemp(s.comfort_temperature[0])} to ${formatTemp(s.comfort_temperature[1])}`,
-              ])}
-            />
-          </Field>
-          <Field label="Languages">
-            <Table
-              head={['Name', 'Style', 'Origin', 'Speakers']}
-              rows={languages.map((l) => [
-                <span title={l.id}>{l.name}</span>, <Enum value={l.style} />, <Enum value={l.origin} />,
-                l.speaker_species_ids.map((s, i) => <span key={s}>{i > 0 && ', '}<Ref bundle={bundle} id={s} /></span>),
-              ])}
-            />
-          </Field>
-          <Field label="Religions">
-            <Table
-              head={['Name', 'Kind', 'Tenets', 'Focus', 'Origin']}
-              rows={religions.map((r) => [
-                <span title={r.id}>{r.name}</span>, <Enum value={r.kind} />, <EnumList values={r.tenets} />,
-                r.focus_name ?? <span className="muted">none</span>, <Enum value={r.origin} />,
-              ])}
-            />
-          </Field>
+        <Section title="Flavor">
+          <Field label="Rumors">{p.rumors.length > 0 && <RumorTable rumors={p.rumors} />}</Field>
         </Section>
       </div>
 
@@ -207,4 +163,3 @@ export function PlanetPage({ bundle }: { bundle: PlanetBundle }) {
     </article>
   );
 }
-

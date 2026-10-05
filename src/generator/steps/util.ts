@@ -17,7 +17,12 @@ export function pickCount(rng: Rng, weights: readonly number[], max = Infinity):
 /** Round to n significant digits. */
 export function roundSig(x: number, n = 3): number {
   if (x === 0) return 0;
-  const d = Math.ceil(Math.log10(Math.abs(x)));
+  const d = Math.floor(Math.log10(Math.abs(x))) + 1;
+  // Divide by an exact power of ten for large numbers so results stay integral.
+  if (d >= n) {
+    const q = Math.pow(10, d - n);
+    return Math.round(x / q) * q;
+  }
   const p = Math.pow(10, n - d);
   return Math.round(x * p) / p;
 }
@@ -34,4 +39,19 @@ export function clamp(x: number, lo: number, hi: number): number {
 /** Index into an ordered scale, clamped. */
 export function scaleAt<T>(scale: readonly T[], index: number): T {
   return scale[clamp(Math.round(index), 0, scale.length - 1)];
+}
+
+/** Round down to n significant digits (never exceeds the input). */
+export function floorSig(x: number, n = 3): number {
+  if (x <= 0) return 0;
+  const d = Math.floor(Math.log10(x)) + 1;
+  if (d <= n) return Math.floor(x);
+  const q = Math.pow(10, d - n);
+  return Math.floor(x / q) * q;
+}
+
+/** Shift an index on an ordered scale by a (possibly fractional) amount with noise, clamped. */
+export function shiftScale<T>(rng: Rng, scale: readonly T[], base: T, shift: number, sd = 0.6): T {
+  const idx = scale.indexOf(base) + shift + rng.normal(0, sd);
+  return scaleAt(scale, idx);
 }
