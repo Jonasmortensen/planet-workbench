@@ -6,6 +6,9 @@ import type { PoliticalStructure } from './types/enums';
  * each planet gets.
  */
 export const CONFIG = {
+  /** Tech level at which a people can travel and trade between worlds (6 = early spaceflight). */
+  spaceflightTech: 6,
+
   /** Country count range per political structure. */
   countryCount: {
     unified: [1, 1],

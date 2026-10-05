@@ -38,6 +38,22 @@ describe('validation across 200 sequential seeds', () => {
     }
   });
 
+  it('gives off-world trade only to contacted, spacefaring planets', () => {
+    let lowTech = 0;
+    for (const b of bundles) {
+      const p = b.planet;
+      if (p.tech_level < 6) {
+        lowTech++;
+        expect(p.primary_exports).toEqual([]);
+        expect(p.primary_imports).toEqual([]);
+        expect(['connected', 'hub']).not.toContain(p.galactic_connectivity);
+      } else if (p.galactic_connectivity !== 'uncontacted') {
+        expect(p.primary_exports.length).toBeGreaterThan(0);
+      }
+    }
+    expect(lowTech).toBeGreaterThan(20);
+  });
+
   it('reports no empty required fields', () => {
     const empty = bundles.flatMap((b) => b.validation
       .filter((i) => i.code === 'empty.field')

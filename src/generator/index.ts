@@ -17,7 +17,7 @@ import { generateSettlementsStep } from './steps/settlements';
 import type { PlanetBundle } from './types/entities';
 import { validate } from './validate';
 
-export const GENERATOR_VERSION = '0.4.0';
+export const GENERATOR_VERSION = '0.5.0';
 
 /** Pipeline steps in order. Each receives the bundle built so far and its own stream. */
 const PIPELINE: { key: string; run: (bundle: PlanetBundle, rng: Rng) => void }[] = [

@@ -12,6 +12,7 @@ import {
   PLANET_DESCRIPTION, PLANET_TAGLINES, POI_DESCRIPTIONS, SETTLEMENT_DESCRIPTION, SETTLEMENT_TAGLINES,
 } from '../content/prose/templates';
 import type { Rng } from '../rng';
+import { isSpacefaring, tradesOffworld } from '../rules/economy';
 import { LIQUID_SEA_BIOMES } from '../rules/physical';
 import type { Country, Npc, Organization, PlanetBundle, Relation, Settlement } from '../types/entities';
 import { entityName } from '../types/ids';
@@ -59,6 +60,7 @@ function renderPlanet(b: PlanetBundle, rng: Rng): void {
       has_megastructure: yes(!!mega), contacted: yes(p.galactic_connectivity !== 'uncontacted'),
       aligned: yes(!['none', 'independent'].includes(p.faction_allegiance)), has_exports: yes(p.primary_exports.length > 0),
       two_biomes: yes(biomes.length > 1), renamed: yes(p.native_name !== p.name),
+      spacefaring: yes(isSpacefaring(p)), trades: yes(tradesOffworld(p)), origin: p.settlement_origin,
     },
     slots: {
       name: p.name, native_name: p.native_name, system: p.star_system, type_noun: PLANET_TYPE_NOUN[p.planet_type],

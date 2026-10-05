@@ -1,4 +1,5 @@
 import { CONFIG } from '../config';
+import { isSpacefaring, tradesOffworld } from '../rules/economy';
 import { PHYSICAL_RULES } from '../rules/physical';
 import { settlementTypeProblems } from '../rules/settlement';
 import { bundleContext } from '../steps/context';
@@ -102,6 +103,12 @@ const checkPlanetStructure: Check = (bundle) => {
   }
   if (p.tech_level < 0 || p.tech_level > 10 || !Number.isInteger(p.tech_level)) {
     issues.push(error('planet.tech_level', p.id, `tech_level ${p.tech_level} must be an integer 0-10`));
+  }
+  if (!tradesOffworld(p) && (p.primary_exports.length > 0 || p.primary_imports.length > 0)) {
+    issues.push(error('planet.trade', p.id, 'Planet has off-world exports or imports without a contacted, spacefaring people'));
+  }
+  if (!isSpacefaring(p) && (p.galactic_connectivity === 'connected' || p.galactic_connectivity === 'hub')) {
+    issues.push(error('planet.connectivity', p.id, `A world below spaceflight cannot be ${p.galactic_connectivity}`));
   }
   if (p.native_sapients !== (p.native_species_id !== null)) {
     issues.push(error('planet.natives', p.id, 'native_sapients and native_species_id disagree'));
@@ -249,7 +256,7 @@ const checkEmptyFields: Check = (bundle) => {
   require(p.id, [
     ['name', p.name], ['native_name', p.native_name], ['star_system', p.star_system], ['biomes', p.biomes],
     ['species', p.species], ['dominant_languages', p.dominant_languages], ['resources', p.resources], ['history', p.history],
-    ...(p.galactic_connectivity !== 'uncontacted' ? [['primary_exports', p.primary_exports], ['primary_imports', p.primary_imports]] as [string, unknown][] : []),
+    ...(tradesOffworld(p) ? [['primary_exports', p.primary_exports], ['primary_imports', p.primary_imports]] as [string, unknown][] : []),
     ...(p.world_government ? [['world_government.name', p.world_government.name]] as [string, unknown][] : []),
   ]);
   p.moons.forEach((m, i) => require(p.id, [[`moons[${i}].name`, m.name]]));

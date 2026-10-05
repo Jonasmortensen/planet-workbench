@@ -26,7 +26,9 @@ export const PLANET_TAGLINES: Template[] = [
   { text: 'The {size} {type_noun} of the {system} system.' },
   { text: 'Where {feature} looks down on {population} souls.', when: { has_feature: ['yes'] } },
   { text: '{name}: {biome1}, {biome2} and {population} people.', when: { two_biomes: ['yes'] } },
-  { text: 'A world of {exports}, cut off from the stars.', when: { contacted: ['no'], has_exports: ['yes'] } },
+  { text: 'A {stability} world whose people have never left their own sky.', when: { spacefaring: ['no'], origin: ['native', 'mixed'] } },
+  { text: 'A {stability} world that has forgotten the stars its founders came from.', when: { spacefaring: ['no'], origin: ['lost_colony'] } },
+  { text: 'A {stability} colony, cut off from the ships that brought it.', when: { spacefaring: ['no'], origin: ['colonial'] } },
   { text: 'A {wealth} world known across the region for {exports}.', when: { contacted: ['yes'], has_exports: ['yes'] } },
   { text: 'Strange things happen on {name}: {anomaly}.', when: { has_anomaly: ['yes'] } },
 ];
@@ -60,6 +62,9 @@ export const PLANET_DESCRIPTION: TemplateGroups = [
     { text: 'Its {wealth} economy exports {exports}[ and depends on imports of {imports}].', when: { has_exports: ['yes'] } },
     { text: 'Traders come for {exports}[ and bring {imports} in return].', when: { has_exports: ['yes'], contacted: ['yes'] } },
     { text: 'The wider galaxy knows nothing of it yet.', when: { contacted: ['no'] } },
+    { text: 'Its people have not yet reached the stars, and offworlders visit only rarely.', when: { trades: ['no'], contacted: ['yes'], spacefaring: ['no'], origin: ['native', 'mixed'] } },
+    { text: 'Its founders came from the stars, but their descendants have lost the means to return.', when: { trades: ['no'], contacted: ['yes'], spacefaring: ['no'], origin: ['lost_colony', 'colonial'] } },
+    { text: 'Ships from other worlds are a rare sight here, and nothing is traded between the stars.', when: { trades: ['no'], contacted: ['yes'], spacefaring: ['no'] } },
     { text: 'It owes its allegiance to {faction}.', when: { aligned: ['yes'] } },
   ],
   [

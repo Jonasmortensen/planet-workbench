@@ -81,6 +81,10 @@ describe('validator catches broken bundles', () => {
     expect(codesAfter((b) => { b.planet.gravity = 9; b.planet.anomalies = []; })).toContain('warning:physical.unrecorded');
   });
 
+  it('flags off-world trade on a planet without spaceflight', () => {
+    expect(codesAfter((b) => { b.planet.tech_level = 2; b.planet.primary_exports = ['grain']; })).toContain('error:planet.trade');
+  });
+
   it('flags template artifacts in prose', () => {
     expect(codesAfter((b) => { b.planet.description = 'A world of {biome}.'; })).toContain('error:prose.artifact');
   });

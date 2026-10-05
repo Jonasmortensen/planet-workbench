@@ -4,6 +4,7 @@ import {
   PLANET_TYPE_TABLE, POLITICAL_STRUCTURE_TABLE, RESOURCE_TABLE, TECH_GOODS, TECH_WEIGHTS_BY_ORIGIN,
 } from '../../content';
 import type { Rng } from '../../rng';
+import { isSpacefaring, tradesOffworld } from '../../rules/economy';
 import { hasLiquidWater } from '../../rules/physical';
 import type { PlanetBundle } from '../../types/entities';
 import {
@@ -101,7 +102,8 @@ export function rollEconomy(bundle: PlanetBundle, rng: Rng): void {
     if (p.tech_level >= 7 && (c === 'uncontacted' || c === 'quarantined')) w = 0;
     if (p.tech_level >= 7 && c === 'isolated') w *= 0.3;
     if (p.tech_level >= 8 && c === 'hub') w *= 2;
-    if (p.tech_level <= 3 && (c === 'connected' || c === 'hub')) w *= 0.2;
+    // Worlds without spaceflight can be known and visited, but are never part of the trade lanes.
+    if (!isSpacefaring(p) && (c === 'connected' || c === 'hub')) w = 0;
     return w;
   });
   const connIdx = CONNECTIVITY_LEVELS.indexOf(p.galactic_connectivity);
@@ -118,8 +120,8 @@ export function rollEconomy(bundle: PlanetBundle, rng: Rng): void {
     + STABILITY_LEVELS.indexOf(p.stability) * 0.25 - 2.2 + wRng.normal(0, 0.7);
   p.wealth_level = scaleAt(WEALTH_LEVELS, clamp(wealthScore, 0, WEALTH_LEVELS.length - 1));
 
-  // Trade: uncontacted worlds have no galactic trade.
-  if (connIdx === 0) {
+  // Off-world trade needs a contacted, spacefaring people.
+  if (!tradesOffworld(p)) {
     p.primary_exports = [];
     p.primary_imports = [];
     return;
