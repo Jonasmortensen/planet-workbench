@@ -53,7 +53,7 @@ export function Table({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
   if (rows.length === 0) return <span className="muted">none</span>;
   return (
     <table className="table">
-      <thead><tr>{head.map((h) => <th key={h}>{h}</th>)}</tr></thead>
+      <thead><tr>{head.map((h, i) => <th key={i}>{h}</th>)}</tr></thead>
       <tbody>{rows.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j}>{c}</td>)}</tr>)}</tbody>
     </table>
   );

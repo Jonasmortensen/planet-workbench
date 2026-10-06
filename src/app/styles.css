@@ -316,3 +316,60 @@ button.badge { border: none; cursor: pointer; font: inherit; font-size: 12px; fo
 .ask-empty { padding: 6px 8px; }
 .journal-entry { display: flex; flex-direction: column; gap: 4px; padding: 8px 0; border-top: 1px solid var(--border); }
 .journal-entry:first-of-type { border-top: none; }
+
+/* Phones: the sidebar becomes a drawer and wide grids collapse to one column. Desktop is unchanged. */
+.nav-toggle, .nav-backdrop { display: none; }
+.chart-grid { grid-template-columns: repeat(auto-fill, minmax(min(440px, 100%), 1fr)); }
+
+@media (max-width: 760px) {
+  body { font-size: 15px; }
+  .app { height: 100dvh; }
+
+  .topbar { gap: 8px 12px; padding: 8px 12px; }
+  .nav-toggle {
+    display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px;
+    border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 20px; cursor: pointer;
+  }
+  .brand { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seed-form { order: 3; width: 100%; flex-wrap: wrap; }
+  .seed-label { display: none; }
+  .seed-input { flex: 1; width: auto; min-width: 0; }
+  .topbar-status { order: 4; width: 100%; margin-left: 0; flex-wrap: wrap; }
+  .topbar-status .muted { display: none; }
+  /* 16px inputs stop iOS from zooming in on focus. */
+  .seed-input, .search-input, .batch-controls input, select { font-size: 16px; }
+
+  .layout { position: relative; }
+  .sidebar {
+    position: absolute; top: 0; bottom: 0; left: 0; z-index: 30; width: min(320px, 86vw);
+    transform: translateX(-100%); transition: transform 0.2s ease;
+    font-size: 14px;
+  }
+  .nav-open .sidebar { transform: none; box-shadow: 0 0 24px rgba(0, 0, 0, 0.25); }
+  .nav-open .nav-backdrop { display: block; position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, 0.35); }
+  .tree-label, .search-hit { padding-top: 7px; padding-bottom: 7px; }
+  .tree-caret-btn, .tree-caret-spacer { width: 26px; align-self: stretch; }
+
+  .main { padding: 12px; }
+  .entity-header { padding: 14px 16px; }
+  .entity-header h1 { font-size: 22px; }
+  .title-suffix { font-size: 16px; }
+  .sections { grid-template-columns: 1fr; gap: 12px; }
+  .section, .chart { padding: 12px 14px; overflow-x: auto; }
+  .field { grid-template-columns: 1fr; gap: 0; }
+  .field-label { font-size: 12px; }
+  .share { min-width: 0; }
+  .bar-row { grid-template-columns: 96px 1fr; gap: 8px; }
+  .progress-track { flex: 1 1 auto; }
+  .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .stat-value { font-size: 22px; }
+  .tooltip { white-space: normal; max-width: 70vw; }
+
+  .dialogue { padding: 12px; }
+  .dialogue-log { max-height: 55dvh; }
+  .msg { max-width: 92%; }
+  .option { padding: 7px 14px; }
+  .dialogue-ask { flex-wrap: wrap; }
+  .ask-item { padding: 9px 8px; }
+  .ask-list { max-height: 45dvh; }
+}

@@ -16,6 +16,9 @@ export function App() {
   const mode: Mode = route.mode ?? 'inspect';
   const [draft, setDraft] = useState(route.seed);
   useEffect(() => setDraft(route.seed), [route.seed]);
+  // On phones the sidebar is a drawer; any navigation closes it.
+  const [navOpen, setNavOpen] = useState(false);
+  useEffect(() => setNavOpen(false), [route.seed, route.entityId, mode]);
 
   const { bundle, ms } = useMemo(() => {
     const t0 = performance.now();
@@ -53,8 +56,10 @@ export function App() {
 
   return (
     <BundleContext.Provider value={ctx}>
-      <div className="app">
+      <div className={navOpen ? 'app nav-open' : 'app'}>
         <header className="topbar">
+          <button className="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded={navOpen}
+            onClick={() => setNavOpen((o) => !o)}>☰</button>
           <div className="brand">Planet Workbench</div>
           <div className="mode-switch" role="tablist">
             <button role="tab" aria-selected={mode === 'inspect'} className={mode === 'inspect' ? 'on' : ''}
@@ -84,6 +89,7 @@ export function App() {
         {mode === 'inspect'
           ? <InspectorLayout routeKey={`${route.seed}/${route.entityId}`} />
           : <ExplorerLayout key={`${bundle.seed}:${bundle.generator_version}`} bundle={bundle} />}
+        <div className="nav-backdrop" onClick={() => setNavOpen(false)} />
       </div>
     </BundleContext.Provider>
   );
