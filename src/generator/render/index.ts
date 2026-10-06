@@ -2,14 +2,14 @@ import { CULTURE_VALUE_TABLE, CURRENT_EVENT_TABLE, FACTION_TABLE } from '../cont
 import {
   AGE_ADJ, ANOMALY_PHRASE, APPEARANCE_PHRASE, ATMOSPHERE_ADJ, ATTITUDE_PHRASE, BIOME_PHRASE, BIOSPHERE_SENTENCES, CLOTHING_PHRASE,
   CURRENT_EVENT_PHRASE, DISPOSITION_PHRASE, DISTRICT_FLAVOR, DOCTRINE_PHRASE, ORG_STRUCTURE_PHRASE, EVENT_NOUN, GOVERNMENT_NOUN, LEGALITY_PHRASE, LIFE_EVENT_CLAUSE,
-  MARK_PHRASE, MEGASTRUCTURE_CONDITION_PHRASE, ORG_NOUN, OUTCOME_PHRASE, PLANET_TYPE_NOUN, POI_FLAVOR, POLITICAL_PHRASE,
+  MARK_PHRASE, MEGASTRUCTURE_CONDITION_PHRASE, ORG_NOUN, OUTCOME_PHRASE, PLANET_TYPE_NOUN, POLITICAL_PHRASE,
   REASON_PHRASE, RELATION_REASON_PHRASE, SCOPE_PHRASE, SETTLEMENT_NOUN, SIZE_ADJ, SPEECH_PHRASE, TERRAIN_PHRASE,
   VISIBILITY_PHRASE,
 } from '../content/prose/lexicon';
 import {
   COUNTRY_DESCRIPTION, COUNTRY_TAGLINES, DISTRICT_DESCRIPTIONS, NPC_BACKSTORY_EVENTS, NPC_BACKSTORY_MOTIVES,
   NPC_BACKSTORY_OPENINGS, NPC_BACKSTORY_ROLES, NPC_DESCRIPTION, NPC_GREETINGS, NPC_TAGLINES, ORG_DESCRIPTION, ORG_TAGLINES,
-  PLANET_DESCRIPTION, PLANET_TAGLINES, POI_DESCRIPTIONS, SETTLEMENT_DESCRIPTION, SETTLEMENT_TAGLINES,
+  PLANET_DESCRIPTION, PLANET_TAGLINES, SETTLEMENT_DESCRIPTION, SETTLEMENT_TAGLINES,
 } from '../content/prose/templates';
 import type { Rng } from '../rng';
 import { isSpacefaring, tradesOffworld } from '../rules/economy';
@@ -17,6 +17,7 @@ import { LIQUID_SEA_BIOMES } from '../rules/physical';
 import type { Country, Npc, Organization, PlanetBundle, Relation, Settlement } from '../types/entities';
 import { entityName } from '../types/ids';
 import { eventIndex } from '../validate/refs';
+import { renderPoi, renderTreasure, showcasePois } from './places';
 import { fill, listOf, render, renderGroups, type RenderContext } from './engine';
 import { IT, fearPhrase, goalPhrase, populationWords, pronounsFor, tempWords, words, yearsAgo, yearsShort } from './words';
 
@@ -34,6 +35,8 @@ export function renderStep(bundle: PlanetBundle, rng: Rng): void {
   for (const o of Object.values(bundle.organizations)) renderOrg(bundle, rng.fork(o.id), o);
   const events = eventIndex(bundle);
   for (const n of Object.values(bundle.npcs)) renderNpc(bundle, rng.fork(n.id), n, events);
+  for (const poi of Object.values(bundle.pois)) renderPoi(bundle, rng.fork(poi.id), poi);
+  for (const t of Object.values(bundle.treasures)) renderTreasure(bundle, rng.fork(t.id), t);
 }
 
 function prose(rng: Rng, key: string, fn: (r: Rng) => string): string {
@@ -133,10 +136,11 @@ function renderSettlement(b: PlanetBundle, rng: Rng, s: Settlement): void {
   const species = s.species.map((x) => b.species[x.species_id].plural_name);
   const orgs = publicOrgs(b, s.organizations_present);
   const event = s.current_events[0];
+  const showcase = showcasePois(b, s);
   const last = s.key_events.length > 1 ? s.key_events[s.key_events.length - 1] : undefined;
   const ctx: RenderContext = {
     facts: {
-      has_poi: yes(s.points_of_interest.length > 0), has_event: yes(!!event), capital: yes(s.settlement_type === 'capital'),
+      has_poi: yes(showcase.length > 0), has_event: yes(!!event), capital: yes(s.settlement_type === 'capital'),
       has_org: yes(orgs.length > 0), has_events: yes(!!last),
       event_fits: yes(!!event && (CURRENT_EVENT_TABLE[event.type].moods?.[s.mood] ?? 0) > 1),
     },
@@ -144,14 +148,14 @@ function renderSettlement(b: PlanetBundle, rng: Rng, s: Settlement): void {
     slots: {
       name: s.name, nickname: s.nickname, type_noun: SETTLEMENT_NOUN[s.settlement_type], country: country.name, mood: s.mood,
       wealth: s.wealth_level, goods: listOf(s.notable_goods.map(words)), terrain: TERRAIN_PHRASE[s.terrain],
-      poi: s.points_of_interest[0]?.name ?? '', event: event ? CURRENT_EVENT_PHRASE[event.type] : '',
+      poi: showcase[0]?.name ?? '', event: event ? CURRENT_EVENT_PHRASE[event.type] : '',
       species_main: species[0], species_minor: listOf(species.slice(1)), industry: words(s.primary_industries[0]),
       org: orgs[0]?.name ?? '', population: populationWords(s.population), biome: BIOME_PHRASE[s.biome],
       language: b.languages[s.languages[0]].name,
       faith: s.religions_or_ideologies[0] ? b.religions[s.religions_or_ideologies[0].religion_id].name : '',
       leader_title: s.leader_title, leader_name: leader?.name ?? '', corruption: s.corruption_level === 'none' ? '' : s.corruption_level,
       law: s.law_level, governing_body: words(s.governing_body), industries: listOf(s.primary_industries.map(words)),
-      pois: listOf(s.points_of_interest.slice(0, 3).map((x) => x.name)), districts: listOf(s.districts.slice(0, 3).map((d) => d.name)),
+      pois: listOf(showcase.slice(0, 3).map((x) => x.name)), districts: listOf(s.districts.slice(0, 3).map((d) => d.name)),
       orgs: listOf(orgs.slice(0, 3).map((o) => o.name)), founded_ago: yearsAgo(s.founding_date),
       last_event: last ? EVENT_NOUN[last.event_type] : '',
     },
@@ -165,14 +169,7 @@ function renderSettlement(b: PlanetBundle, rng: Rng, s: Settlement): void {
       facts: {}, slots: { name: d.name, district: words(d.type), settlement: s.name, flavor: r.pick(DISTRICT_FLAVOR[d.type]) },
     });
   });
-  for (const poi of s.points_of_interest) {
-    const r = rng.fork(poi.id);
-    const owner = poi.owner_npc_id ? b.npcs[poi.owner_npc_id] : null;
-    // Owners who lead something in secret are still publicly known as owners; only the leadership is hidden.
-    poi.description = render(r, POI_DESCRIPTIONS, {
-      facts: {}, slots: { name: poi.name, poi: words(poi.type), settlement: s.name, owner: owner?.name ?? '', flavor: r.pick(POI_FLAVOR[poi.type]) },
-    });
-  }
+
 }
 
 // ---------------------------------------------------------------------------
@@ -222,7 +219,7 @@ function renderNpc(b: PlanetBundle, rng: Rng, n: Npc, events: ReturnType<typeof 
   const publicLead = n.leads.find((l) => l.public);
   const led = publicLead ? entityName(b, publicLead.entity_id) : '';
   const orgs = publicOrgs(b, n.organization_ids);
-  const workplace = n.workplace_poi_id ? s.points_of_interest.find((p) => p.id === n.workplace_poi_id)?.name ?? '' : '';
+  const workplace = n.workplace_poi_id ? b.pois[n.workplace_poi_id]?.name ?? '' : '';
   const appearance = n.appearance.map((a) => APPEARANCE_PHRASE[a]);
   const ageAdj = AGE_ADJ[n.age_category];
   const slots: Record<string, string> = {

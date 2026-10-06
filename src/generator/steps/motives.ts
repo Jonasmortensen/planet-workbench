@@ -103,7 +103,7 @@ function assignSecret(ctx: MotiveContext, rng: Rng, n: Npc): void {
   const enemies = ctx.related(n, 'enemy', 'rival');
   const younger = locals.filter((x) => x.species_id === n.species_id && n.age - x.age >= b.species[n.species_id].lifespan_years * 0.18);
   const villains = locals.filter((x) => ['villain', 'fixer', 'enforcer'].includes(x.role_type));
-  const ruins = Object.values(b.settlements).filter((s) => s.points_of_interest.some((p) => p.type === 'ruin') || s.settlement_type === 'ruin_town');
+  const ruins = Object.values(b.settlements).filter((s) => s.settlement_type === 'ruin_town' || s.districts.some((d) => d.type === 'ruins'));
   const species = b.species[n.species_id];
 
   const options: Option<SecretType>[] = [

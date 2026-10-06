@@ -14,9 +14,10 @@ export type SpeciesId = string;
 export type LanguageId = string;
 export type ReligionId = string;
 export type PoiId = string;
+export type TreasureId = string;
 export type CurrentEventId = string;
 export type HistoricalEventId = string;
-/** Any entity id (planet, country, settlement, organization, npc, species, language, religion). */
+/** Any entity id (planet, country, settlement, organization, npc, species, language, religion, poi, treasure). */
 export type EntityId = string;
 
 // ---------------------------------------------------------------------------
@@ -328,12 +329,42 @@ export interface District {
   description: string;
 }
 
+/**
+ * A place in a settlement where NPCs can be found. Points of interest exist
+ * only to hold NPCs (see steps/places.ts); who is present is derived from
+ * Npc.location_poi_id, and treasures from Treasure.holder.
+ */
 export interface PointOfInterest {
   id: PoiId;
+  seed: string;
+  settlement_id: SettlementId;
   name: string;
   type: E.PoiType;
-  description: string;
+  significance: E.PoiSignificance;
   owner_npc_id: NpcId | null;
+  /** Set when this is an organization's headquarters. */
+  organization_id: OrgId | null;
+  description: string;
+}
+
+export type TreasureHolder = { poi_id: PoiId } | { npc_id: NpcId };
+
+/** Something rare, valuable or dangerous, held at a point of interest or by an NPC. */
+export interface Treasure {
+  id: TreasureId;
+  seed: string;
+  name: string;
+  category: E.TreasureCategory;
+  rarity: E.TreasureRarity;
+  holder: TreasureHolder;
+  /** public: known to exist; discreet: known to a few; secret: known only to its keepers. */
+  visibility: E.Visibility;
+  /** The real entities the treasure is about (required for knowledge, intel, leverage, access and maps). */
+  subject_refs: EntityId[];
+  guarded_by_npc_ids: NpcId[];
+  /** True when the treasure is the holder NPC themself (their gift or what they know), not an object they carry. */
+  embodied: boolean;
+  description: string;
 }
 
 export interface CurrentEvent {
@@ -377,7 +408,8 @@ export interface Settlement {
   garrison_strength: E.GarrisonStrength;
 
   districts: District[];
-  points_of_interest: PointOfInterest[];
+  /** Filled by the places step. */
+  poi_ids: PoiId[];
 
   mood: E.Mood;
   aesthetic: E.Aesthetic;
@@ -489,7 +521,15 @@ export interface Npc {
   occupation: E.Occupation;
   social_rank: E.SocialRank;
   role_type: E.RoleType;
+  /** Where they work, if that place exists (someone is there). Not always where they are. */
   workplace_poi_id: PoiId | null;
+  /** Where they can be found. NPCs are static. Filled by the places step. */
+  location_poi_id: PoiId;
+  location_reason: E.LocationReason;
+  /** The entity that explains a surprising location (the relative visited, the organization met). */
+  location_reason_ref: EntityId | null;
+  /** False when being there is itself a secret (a mayor at a syndicate's hideout). */
+  location_public: boolean;
 
   appearance: E.AppearanceDetail[];
   clothing: E.ClothingStyle;
@@ -554,5 +594,7 @@ export interface PlanetBundle {
   species: Record<SpeciesId, Species>;
   languages: Record<LanguageId, Language>;
   religions: Record<ReligionId, Religion>;
+  pois: Record<PoiId, PointOfInterest>;
+  treasures: Record<TreasureId, Treasure>;
   validation: ValidationIssue[];
 }

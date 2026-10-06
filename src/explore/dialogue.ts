@@ -5,7 +5,7 @@ import {
 import { CULTURE_VALUE_TABLE, FACTION_TABLE, TECH_LEVEL_LABELS } from '../generator/content';
 import {
   ANOMALY_PHRASE, APPEARANCE_PHRASE, ATTITUDE_PHRASE, BIOME_PHRASE, CURRENT_EVENT_PHRASE, DOCTRINE_PHRASE, EVENT_NOUN,
-  GOVERNMENT_NOUN, LEGALITY_PHRASE, LIFE_EVENT_CLAUSE, POLITICAL_PHRASE, QUEST_PHRASE, RUMOR_PHRASE, SETTLEMENT_NOUN,
+  GOVERNMENT_NOUN, LEGALITY_PHRASE, LIFE_EVENT_CLAUSE, LOCATION_REASON_PHRASE, POLITICAL_PHRASE, QUEST_PHRASE, RUMOR_PHRASE, SETTLEMENT_NOUN,
   TERRAIN_PHRASE,
 } from '../generator/content/prose/lexicon';
 import type { Template } from '../generator/content/prose/templates';
@@ -13,12 +13,12 @@ import { fill, listOf, render, type RenderContext } from '../generator/render/en
 import { goalPhrase, fearPhrase, populationWords, pronounsFor, words, yearsAgo, IT } from '../generator/render/words';
 import { tradesOffworld } from '../generator/rules/economy';
 import { Rng } from '../generator/rng';
-import { knows, learn, meet, type FactRef, type HeardRumor, type Knowledge } from './knowledge';
+import { knows, learn, meet, whereabouts, type FactRef, type HeardRumor, type Knowledge } from './knowledge';
 import {
   ANSWER_OPENERS, DONT_KNOW, FACT_LINES, NOTHING_NEW, NO_RUMORS, NO_WORK, REFERRALS, REFUSALS, REWARD_PHRASE, RUMOR_LINES,
   SELF_LINES, WORK_LINES,
 } from './lines';
-import { isPublicOrg, npcKnows } from './npcKnowledge';
+import { isPublicOrg, npcKnows, poiInPlainSight } from './npcKnowledge';
 
 /**
  * Template-driven dialogue: the player picks a topic, the NPC answers from
@@ -200,6 +200,7 @@ function describe(b: PlanetBundle, id: string, speaker: string): Described {
       const pr = pronounsFor(n);
       const lead = n.leads.find((l) => l.public);
       const orgs = n.organization_ids.map((o) => b.organizations[o]).filter(isPublicOrg);
+      const found = n.location_public && poiInPlainSight(b, n.location_poi_id);
       return {
         facts: { has_orgs: yes(orgs.length > 0) },
         plural: pr.plural,
@@ -209,8 +210,14 @@ function describe(b: PlanetBundle, id: string, speaker: string): Described {
           they: pr.they, them: pr.them, themself: pr.plural ? 'themselves' : pr.they === 'she' ? 'herself' : 'himself',
           appearance: listOf(n.appearance.slice(0, 2).map((a) => APPEARANCE_PHRASE[a])), traits: listOf(n.traits),
           orgs: listOf(orgs.map((o) => o.name)),
+          location: found ? b.pois[n.location_poi_id].name : '',
+          reason: found && !['works_here', 'lives_here'].includes(n.location_reason)
+            ? fill(LOCATION_REASON_PHRASE[n.location_reason], { facts: {}, slots: { their: pr.their } }) : '',
         },
-        mentions: [...named([n.settlement_id]), ...named(orgs.map((o) => o.id)), ...named(lead ? [lead.entity_id] : [])],
+        mentions: [
+          ...named([n.settlement_id]), ...named(orgs.map((o) => o.id)), ...named(lead ? [lead.entity_id] : []),
+          ...named(found ? [n.location_poi_id] : [], ['name', 'details']),
+        ],
       };
     }
     case 'species': {
@@ -254,7 +261,7 @@ function selfSentences(b: PlanetBundle, rng: Rng, n: Npc, groups: string[]): str
   const lead = n.leads.find((l) => l.public);
   const orgs = n.organization_ids.map((o) => b.organizations[o]).filter(isPublicOrg);
   const life = n.key_life_events.find((e) => LIFE_EVENT_CLAUSE[e.event_type]);
-  const workplace = n.workplace_poi_id ? b.settlements[n.settlement_id].points_of_interest.find((p) => p.id === n.workplace_poi_id)?.name ?? '' : '';
+  const workplace = n.workplace_poi_id && poiInPlainSight(b, n.workplace_poi_id) ? b.pois[n.workplace_poi_id].name : '';
   const rels = n.relationships.slice(0, 3).map((r) => `my ${words(r.type)} ${b.npcs[r.npc_id].name} lives in ${b.settlements[b.npcs[r.npc_id].settlement_id].name}`);
   const me = { they: 'I', them: 'me', their: 'my', plural: true };
   const ctx: RenderContext = {
@@ -283,6 +290,7 @@ function selfMentions(b: PlanetBundle, n: Npc, groups: string[]): FactRef[] {
   if (groups.includes('relationships')) out.push(...named(n.relationships.slice(0, 3).map((r) => r.npc_id)));
   const lead = n.leads.find((l) => l.public);
   if (groups.includes('role') && lead) out.push(...named([lead.entity_id]));
+  if (groups.includes('role') && n.workplace_poi_id && poiInPlainSight(b, n.workplace_poi_id)) out.push(...named([n.workplace_poi_id], ['name', 'details']));
   for (const t of [n.goal, n.fear]) {
     const target = t && (t.target_npc_id ?? t.target_org_id ?? t.target_settlement_id ?? t.target_country_id);
     if (target && ((groups.includes('goal') && t === n.goal) || (groups.includes('fear') && t === n.fear))) out.push(...named([target]));
@@ -459,7 +467,9 @@ export function ask(b: PlanetBundle, k: Knowledge, npcId: string, option: Dialog
 /** Record a turn: learn its facts, remember its rumors, log it. */
 export function applyTurn(b: PlanetBundle, k: Knowledge, turn: DialogueTurn): Knowledge {
   const met = meet(b, k, turn.npc_id);
-  const { knowledge, learned } = learn(met.knowledge, turn.reveals);
+  // Learning who someone is includes where they can usually be found, if that is no secret.
+  const found = turn.reveals.filter((f) => f.group === 'role' && kindOf(f.entity) === 'npc').flatMap((f) => whereabouts(b, f.entity));
+  const { knowledge, learned } = learn(met.knowledge, [...turn.reveals, ...found]);
   const rumors = [...knowledge.rumors];
   for (const r of turn.rumors) {
     if (!rumors.some((h) => h.rumor.subject_ref === r.subject_ref && h.rumor.claim_type === r.claim_type && h.rumor.target_ref === r.target_ref)) {

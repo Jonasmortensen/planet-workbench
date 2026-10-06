@@ -174,6 +174,10 @@ export const FACT_LINES: Record<string, Template[]> = {
   ],
   'npc.appearance': [{ text: 'You’ll know {them} by {appearance}.' }],
   'npc.personality': [{ text: '{name|cap} is {traits}.' }],
+  'npc.location': [
+    { text: 'You’ll usually find {name} at {location}[, {reason}].' },
+    { text: 'Look for {name} at {location}.' },
+  ],
   'npc.affiliations': [{ text: '{name|cap} is with {orgs}.', when: { has_orgs: ['yes'] } }, { text: '{name|cap} keeps to {themself}.', when: { has_orgs: ['no'] } }],
 
   // Peoples

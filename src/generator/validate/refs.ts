@@ -61,7 +61,7 @@ export function collectRefs(bundle: PlanetBundle): RefSite[] {
     s.languages.forEach((l) => add(s.id, 'languages', l, 'language'));
     s.religions_or_ideologies.forEach((r) => add(s.id, 'religions_or_ideologies', r.religion_id, 'religion'));
     add(s.id, 'leader_npc_id', s.leader_npc_id, 'npc');
-    s.points_of_interest.forEach((poi) => add(s.id, `points_of_interest.${poi.id}.owner_npc_id`, poi.owner_npc_id, 'npc'));
+    s.poi_ids.forEach((id) => add(s.id, 'poi_ids', id, 'poi'));
     s.current_events.forEach((e) => e.involved_refs.forEach((r) => add(s.id, `current_events (${e.type})`, r)));
     s.organizations_present.forEach((o) => add(s.id, 'organizations_present', o, 'organization'));
     events(s.id, 'key_events', s.key_events);
@@ -105,6 +105,21 @@ export function collectRefs(bundle: PlanetBundle): RefSite[] {
     n.quest_hooks.forEach((h) => h.target_refs.forEach((t) => add(n.id, `quest_hooks (${h.type})`, t)));
     rumors(n.id, n.rumors_about);
     events(n.id, 'key_life_events', n.key_life_events);
+    add(n.id, 'workplace_poi_id', n.workplace_poi_id, 'poi');
+    add(n.id, 'location_poi_id', n.location_poi_id || null, 'poi');
+    add(n.id, `location_reason_ref (${n.location_reason})`, n.location_reason_ref);
+  }
+
+  for (const poi of Object.values(bundle.pois)) {
+    add(poi.id, 'settlement_id', poi.settlement_id, 'settlement');
+    add(poi.id, 'owner_npc_id', poi.owner_npc_id, 'npc');
+    add(poi.id, 'organization_id', poi.organization_id, 'organization');
+  }
+  for (const t of Object.values(bundle.treasures)) {
+    if ('poi_id' in t.holder) add(t.id, 'holder.poi_id', t.holder.poi_id, 'poi');
+    else add(t.id, 'holder.npc_id', t.holder.npc_id, 'npc');
+    t.subject_refs.forEach((x) => add(t.id, 'subject_refs', x));
+    t.guarded_by_npc_ids.forEach((x) => add(t.id, 'guarded_by_npc_ids', x, 'npc'));
   }
 
   for (const l of Object.values(bundle.languages)) {

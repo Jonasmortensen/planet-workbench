@@ -12,12 +12,13 @@ import { generateLeadersStep } from './steps/leaders';
 import { generateMotivesStep } from './steps/motives';
 import { generateNotablesStep } from './steps/notables';
 import { generateOrganizationsStep } from './steps/organizations';
+import { generatePlacesStep } from './steps/places';
 import { generateRelationshipsStep } from './steps/relationships';
 import { generateSettlementsStep } from './steps/settlements';
 import type { PlanetBundle } from './types/entities';
 import { validate } from './validate';
 
-export const GENERATOR_VERSION = '0.5.0';
+export const GENERATOR_VERSION = '0.6.0';
 
 /** Pipeline steps in order. Each receives the bundle built so far and its own stream. */
 const PIPELINE: { key: string; run: (bundle: PlanetBundle, rng: Rng) => void }[] = [
@@ -30,6 +31,7 @@ const PIPELINE: { key: string; run: (bundle: PlanetBundle, rng: Rng) => void }[]
   { key: 'notables', run: generateNotablesStep },
   { key: 'relationships', run: generateRelationshipsStep },
   { key: 'motives', run: generateMotivesStep },
+  { key: 'places', run: generatePlacesStep },
   { key: 'render', run: renderStep },
 ];
 
@@ -46,6 +48,8 @@ export function generatePlanet(seed: string): PlanetBundle {
     species: {},
     languages: {},
     religions: {},
+    pois: {},
+    treasures: {},
     validation: [],
   };
   for (const step of PIPELINE) step.run(bundle, root.fork(step.key));
@@ -54,4 +58,5 @@ export function generatePlanet(seed: string): PlanetBundle {
 }
 
 export { validate } from './validate';
+export { holderId, isSurprising, npcsAt, treasureSite, treasuresAt, treasuresCarriedBy } from './rules/places';
 export * from './types';

@@ -26,6 +26,13 @@ function isLeaderish(n: Npc): boolean {
 
 const isLearned = (n: Npc) => LEARNED.includes(n.occupation) || ['elder', 'ancient'].includes(n.age_category);
 
+/** Hideouts and the seats of secret or outlawed organizations are not visible from the street. */
+export function poiInPlainSight(b: PlanetBundle, poiId: string): boolean {
+  const p = b.pois[poiId];
+  const org = p?.organization_id ? b.organizations[p.organization_id] : null;
+  return !!p && p.type !== 'hideout' && (!org || isPublicOrg(org));
+}
+
 export function npcKnows(b: PlanetBundle, n: Npc, entityId: string): string[] {
   const home = b.settlements[n.settlement_id];
   const country = b.countries[home.country_id];
@@ -91,6 +98,8 @@ export function npcKnows(b: PlanetBundle, n: Npc, entityId: string): string[] {
         if (CLOSE.includes(rel.type)) add('personality');
       }
       if (x.settlement_id === home.id) add('name', 'role');
+      // Neighbors and friends know where someone can usually be found, if it is no secret.
+      if ((x.settlement_id === home.id || rel) && x.location_public && poiInPlainSight(b, x.location_poi_id)) add('location');
       const publicLeads = x.leads.filter((l) => l.public).map((l) => l.entity_id);
       if (publicLeads.includes(home.id) || publicLeads.includes(country.id) || publicLeads.includes(PLANET_ID)
         || publicLeads.some((id) => home.organizations_present.includes(id))) add('name', 'role');

@@ -1,5 +1,5 @@
 import type {
-  Biome, DefenseType, DistrictType, GoverningBody, Industry, LinkType, Mood, PoiType, SettlementType, Terrain,
+  Biome, DefenseType, DistrictType, GoverningBody, Industry, LinkType, Mood, SettlementType, Terrain,
 } from '../types/enums';
 import type { WeightedDef } from './constraints';
 import type { NamePattern } from './naming/patterns';
@@ -267,53 +267,6 @@ export const DISTRICT_NAME_PATTERNS: NamePattern[] = [
   { pattern: 'the {adjective} {district}', weight: 3 },
   { pattern: '{root} {district}', weight: 3 },
 ];
-
-export interface PoiDef extends WeightedDef {
-  /** Minimum settlement size. */
-  minSize: number;
-  /** Districts this point of interest is usually found in (x3 weight if present). */
-  districts: DistrictType[];
-  namePatterns: NamePattern[];
-}
-
-const VENUE = (nouns: string[]): NamePattern[] => [
-  { pattern: 'The {adjective} {noun}', weight: 4 },
-  { pattern: "The {noun} and {noun2}", weight: 2 },
-  ...nouns.map((n) => ({ pattern: `{root}'s ${n}`, weight: 1.5 })),
-];
-
-export const POI_TABLE: Record<PoiType, PoiDef> = {
-  tavern: { weight: 8, minSize: 1, districts: ['market', 'docks', 'residential', 'entertainment', 'slums'], namePatterns: VENUE(['Tavern', 'Taproom', 'Alehouse']) },
-  temple: { weight: 5, minSize: 1, districts: ['temple', 'old_town'], namePatterns: [{ pattern: 'Temple of the {adjective} {noun}', weight: 3 }, { pattern: 'the {root} Temple', weight: 2 }, { pattern: 'House of {root}', weight: 1 }] },
-  guild_hall: { weight: 4, minSize: 2, districts: ['artisan', 'market', 'industrial'], namePatterns: [{ pattern: 'the {noun} Guildhall', weight: 3 }, { pattern: 'Hall of the {adjective} {noun}', weight: 2 }] },
-  ruin: { weight: 2, minSize: 1, districts: ['ruins', 'old_town'], namePatterns: [{ pattern: 'the {adjective} Ruin', weight: 2 }, { pattern: 'the Ruins of {root}', weight: 3 }] },
-  spaceport: { weight: 3, minSize: 2, districts: ['spaceport'], constraints: { minTech: 6 }, namePatterns: [{ pattern: '{root} Starport', weight: 3 }, { pattern: 'the {adjective} Landing', weight: 2 }] },
-  black_market: { weight: 2, minSize: 2, districts: ['slums', 'undercity', 'docks'], namePatterns: [{ pattern: 'the {adjective} Market', weight: 2 }, { pattern: 'the Underbazaar', weight: 1 }, { pattern: "{root}'s Back Room", weight: 1.5 }] },
-  market: { weight: 5, minSize: 1, districts: ['market'], namePatterns: [{ pattern: 'the {adjective} Market', weight: 3 }, { pattern: '{root} Square', weight: 2 }] },
-  palace: { weight: 1, minSize: 4, districts: ['noble_quarter', 'administrative'], namePatterns: [{ pattern: 'the {adjective} Palace', weight: 3 }, { pattern: 'the Palace of {root}', weight: 2 }, { pattern: 'the {noun} Seat', weight: 1 }] },
-  barracks: { weight: 2, minSize: 2, districts: ['military'], namePatterns: [{ pattern: 'the {adjective} Barracks', weight: 2 }, { pattern: '{root} Garrison', weight: 2 }] },
-  library: { weight: 2, minSize: 3, districts: ['academic', 'temple', 'old_town'], namePatterns: [{ pattern: 'the {adjective} Library', weight: 2 }, { pattern: 'the {root} Athenaeum', weight: 1 }] },
-  laboratory: { weight: 1.5, minSize: 2, districts: ['laboratory', 'academic'], constraints: { minTech: 5 }, namePatterns: [{ pattern: 'the {root} Laboratory', weight: 2 }, { pattern: '{adjective} {noun} Research', weight: 1 }] },
-  hospital: { weight: 2, minSize: 3, districts: ['residential', 'temple', 'academic'], namePatterns: [{ pattern: 'the {adjective} Infirmary', weight: 2 }, { pattern: 'House of Mercy {root}', weight: 1 }, { pattern: '{root} Hospice', weight: 1.5 }] },
-  arena: { weight: 1.5, minSize: 3, districts: ['entertainment'], namePatterns: [{ pattern: 'the {adjective} Arena', weight: 2 }, { pattern: 'the {root} Pit', weight: 1.5 }] },
-  bathhouse: { weight: 1.5, minSize: 2, districts: ['entertainment', 'residential', 'noble_quarter'], constraints: { requiresLiquidWater: true }, namePatterns: [{ pattern: 'the {adjective} Baths', weight: 2 }, { pattern: '{root} Springs', weight: 1.5 }] },
-  workshop: { weight: 4, minSize: 1, districts: ['artisan', 'industrial'], namePatterns: [{ pattern: "{root}'s Workshop", weight: 3 }, { pattern: 'the {adjective} {noun} Works', weight: 1.5 }] },
-  shrine: { weight: 3, minSize: 1, districts: ['temple', 'gardens', 'farmland'], namePatterns: [{ pattern: 'the Shrine of the {noun}', weight: 3 }, { pattern: "{root}'s Shrine", weight: 2 }] },
-  prison: { weight: 1, minSize: 3, districts: ['military', 'administrative'], namePatterns: [{ pattern: 'the {adjective} Gaol', weight: 2 }, { pattern: '{root} Hold', weight: 2 }] },
-  embassy: { weight: 1, minSize: 4, districts: ['foreign_quarter', 'administrative'], namePatterns: [{ pattern: 'the {root} Embassy', weight: 3 }] },
-  observatory: { weight: 1, minSize: 2, districts: ['academic', 'temple'], constraints: { minTech: 2 }, namePatterns: [{ pattern: 'the {adjective} Observatory', weight: 2 }, { pattern: '{root} Watch', weight: 1.5 }] },
-  museum: { weight: 1, minSize: 3, districts: ['academic', 'old_town', 'administrative'], constraints: { minTech: 4 }, namePatterns: [{ pattern: 'the {root} Collection', weight: 2 }, { pattern: 'the Museum of the {adjective} {noun}', weight: 1.5 }] },
-  gambling_den: { weight: 2, minSize: 2, districts: ['entertainment', 'slums', 'docks'], namePatterns: [{ pattern: 'the {adjective} Wheel', weight: 2 }, { pattern: "{root}'s Tables", weight: 2 }, { pattern: 'the {noun} and Dice', weight: 1 }] },
-  inn: { weight: 5, minSize: 1, districts: ['market', 'residential', 'foreign_quarter'], namePatterns: VENUE(['Inn', 'Rest', 'Lodge']) },
-  docks: { weight: 2, minSize: 2, districts: ['docks'], constraints: { requiresLiquidWater: true }, namePatterns: [{ pattern: '{root} Wharf', weight: 2 }, { pattern: 'the {adjective} Quay', weight: 2 }] },
-  monument: { weight: 2, minSize: 2, districts: ['administrative', 'old_town', 'gardens'], namePatterns: [{ pattern: 'the {adjective} Monument', weight: 2 }, { pattern: 'the Statue of {root}', weight: 2 }, { pattern: 'the {noun} Pillar', weight: 1 }] },
-  archive: { weight: 1.5, minSize: 3, districts: ['administrative', 'academic'], namePatterns: [{ pattern: 'the {adjective} Archive', weight: 2 }, { pattern: 'the {root} Records', weight: 1 }] },
-  shipyard: { weight: 1.5, minSize: 2, districts: ['docks', 'spaceport', 'industrial'], constraints: { minTech: 2 }, namePatterns: [{ pattern: '{root} Yards', weight: 2 }, { pattern: 'the {adjective} Slipway', weight: 1 }] },
-  salvage_yard: { weight: 2, minSize: 1, districts: ['industrial', 'slums', 'ruins', 'warehouse'], namePatterns: [{ pattern: "{root}'s Salvage", weight: 2 }, { pattern: 'the {adjective} Scrapyard', weight: 1.5 }] },
-  theater: { weight: 1.5, minSize: 3, districts: ['entertainment', 'noble_quarter'], namePatterns: [{ pattern: 'the {adjective} Stage', weight: 2 }, { pattern: 'the {root} Playhouse', weight: 2 }] },
-  garden: { weight: 2, minSize: 2, districts: ['gardens', 'noble_quarter'], constraints: { biospheres: ['sparse', 'complex', 'lush', 'exotic', 'dying'] }, namePatterns: [{ pattern: 'the {adjective} Garden', weight: 2 }, { pattern: "{root}'s Garden", weight: 1.5 }] },
-  crypt: { weight: 1.5, minSize: 2, districts: ['necropolis', 'temple', 'old_town'], namePatterns: [{ pattern: 'the Crypt of {root}', weight: 2 }, { pattern: 'the {adjective} Vault', weight: 1.5 }] },
-};
 
 export const NICKNAME_PATTERNS: NamePattern[] = [
   { pattern: 'the {adjective} {epithetNoun}', weight: 5 },

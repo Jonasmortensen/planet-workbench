@@ -1,6 +1,7 @@
 import type { PlanetBundle, Rumor } from '../generator';
 import { PLANET_ID, kindOf } from '../generator';
 import { FACT_GROUPS, groupsSeen } from './facts';
+import { poiInPlainSight } from './npcKnowledge';
 
 /** One known fact group of one entity. */
 export interface FactRef {
@@ -80,11 +81,24 @@ export function createKnowledge(b: PlanetBundle): Knowledge {
 /** Everything visible when walking into a settlement: the place, its country's flag and signs, the peoples in its streets. */
 export function visibleOnArrival(b: PlanetBundle, settlementId: string): FactRef[] {
   const s = b.settlements[settlementId];
+  const places = s.poi_ids.map((id) => b.pois[id]).filter((p) => poiInPlainSight(b, p.id));
   return [
     ...facts(s.id, groupsSeen('settlement', 'arrival')),
     ...facts(s.country_id, groupsSeen('country', 'arrival')),
     ...s.species.flatMap((x) => facts(x.species_id, groupsSeen('species', 'arrival'))),
+    // Its places, and the treasures everyone knows they hold.
+    ...places.flatMap((p) => facts(p.id, groupsSeen('poi', 'arrival'))),
+    ...Object.values(b.treasures)
+      .filter((t) => t.visibility === 'public' && 'poi_id' in t.holder && places.some((p) => 'poi_id' in t.holder && p.id === t.holder.poi_id))
+      .flatMap((t) => facts(t.id, ['name', 'details'])),
   ];
+}
+
+/** Where an NPC can be found, if that is public: their whereabouts and the place. */
+export function whereabouts(b: PlanetBundle, npcId: string): FactRef[] {
+  const n = b.npcs[npcId];
+  if (!n.location_public || !poiInPlainSight(b, n.location_poi_id)) return [];
+  return [{ entity: n.id, group: 'location' }, ...facts(n.location_poi_id, ['name', 'details'])];
 }
 
 /** Everything visible when meeting an NPC: who they are and how they look, plus their settlement. */
@@ -94,6 +108,11 @@ export function visibleOnMeeting(b: PlanetBundle, npcId: string): FactRef[] {
     ...visibleOnArrival(b, n.settlement_id),
     ...facts(n.id, ['name', ...groupsSeen('npc', 'meet')]),
     { entity: n.species_id, group: 'name' },
+    ...whereabouts(b, npcId),
+    // Treasures they openly carry or are.
+    ...Object.values(b.treasures)
+      .filter((t) => t.visibility === 'public' && 'npc_id' in t.holder && t.holder.npc_id === npcId)
+      .flatMap((t) => facts(t.id, ['name', 'details'])),
   ];
 }
 
@@ -117,6 +136,7 @@ export function progress(b: PlanetBundle, k: Knowledge): { known: number; total:
   const ids = [
     PLANET_ID, ...Object.keys(b.countries), ...Object.keys(b.settlements), ...Object.keys(b.organizations),
     ...Object.keys(b.npcs), ...Object.keys(b.species), ...Object.keys(b.languages), ...Object.keys(b.religions),
+    ...Object.keys(b.pois), ...Object.keys(b.treasures),
   ];
   let total = 0;
   let known = 0;

@@ -456,8 +456,35 @@ export const POI_TYPES = e(
   'library', 'laboratory', 'hospital', 'arena', 'bathhouse', 'workshop', 'shrine', 'prison', 'embassy',
   'observatory', 'museum', 'gambling_den', 'inn', 'docks', 'monument', 'archive', 'shipyard',
   'salvage_yard', 'theater', 'garden', 'crypt',
+  // Civic and working places
+  'city_hall', 'courthouse', 'counting_house', 'trading_house', 'warehouse', 'farmstead', 'mine', 'hunting_lodge',
+  'stables', 'meeting_hall', 'monastery', 'college', 'citadel', 'hideout',
+  // Residences, from grandest to poorest
+  'estate', 'manor', 'townhouse', 'house', 'cottage', 'tenement', 'hovel',
 );
 export type PoiType = Of<typeof POI_TYPES>;
+
+/** ordered */
+export const POI_SIGNIFICANCES = e('minor', 'notable', 'major', 'landmark');
+export type PoiSignificance = Of<typeof POI_SIGNIFICANCES>;
+
+/** Why an NPC can be found where they are. The first three are ordinary; the rest are "surprising". */
+export const LOCATION_REASONS = e(
+  'works_here', 'lives_here', 'owns_it',
+  'visiting_family', 'visiting_lover', 'visiting_friend', 'secret_meeting', 'hiding', 'worshipping', 'drinking',
+  'gambling', 'training', 'imprisoned', 'guarding', 'negotiating', 'recovering', 'studying',
+);
+export type LocationReason = Of<typeof LOCATION_REASONS>;
+
+export const TREASURE_CATEGORIES = e(
+  'weapon', 'armor', 'artifact', 'technology', 'resource', 'wealth', 'relic', 'knowledge', 'intel', 'leverage',
+  'access', 'map',
+);
+export type TreasureCategory = Of<typeof TREASURE_CATEGORIES>;
+
+/** ordered */
+export const TREASURE_RARITIES = e('rare', 'exceptional', 'legendary');
+export type TreasureRarity = Of<typeof TREASURE_RARITIES>;
 
 export const MOODS = e(
   'bustling', 'tense', 'festive', 'grim', 'decadent', 'fearful', 'hopeful', 'sleepy', 'militant', 'pious',

@@ -59,6 +59,9 @@ export function BatchPage() {
             <StatTile label="Leadership overlap" value={pct(stats.overlapRate)} detail={`of ordinary slots reused · ${pct(stats.multiRoleShare)} of leaders hold 2+ roles`} />
             <StatTile label="Hidden roles" value={stats.hiddenRoles.toLocaleString()} detail={`${(stats.hiddenRoles / stats.planets).toFixed(1)} per planet`} />
             <StatTile label="True rumors" value={pct(stats.trueRumorShare)} detail="share of all rumors" />
+            <StatTile label="Treasures per place" value={stats.treasuresPerPoi.toFixed(2)} detail={`${stats.avgPois.toFixed(0)} places · ${stats.avgTreasures.toFixed(0)} treasures per planet`} />
+            <StatTile label="Surprising locations" value={pct(stats.surprisingShare)} detail="NPCs not at work or home (target 20–30%)" />
+            <StatTile label="NPCs with treasure" value={pct(stats.carryingShare)} detail="carry or are a treasure (target 10–20%)" />
           </div>
 
           <div className="chart-grid">
@@ -71,6 +74,11 @@ export function BatchPage() {
             <BarChart title="Government types" subtitle="Countries per government" data={stats.governmentTypes} />
             <BarChart title="Organization types" subtitle="Organizations per type" data={stats.orgTypes} />
             <BarChart title="Settlement types" subtitle="Settlements per type" data={stats.settlementTypes} />
+            <BarChart title="Treasure categories" subtitle="Treasures per category" data={stats.treasureCategories} />
+            <BarChart title="Treasure rarity" subtitle="Treasures per rarity" data={stats.treasureRarities} />
+            <BarChart title="Treasures per place" subtitle="Places by number of their own treasures" data={stats.treasuresPerPoiDist} label={(k) => k} />
+            <BarChart title="Place significance" subtitle="Points of interest per significance" data={stats.poiSignificances} />
+            <BarChart title="Why NPCs are where they are" subtitle="NPCs per location reason" data={stats.locationReasons} />
             <BarChart title="Validation issues" subtitle="Issues per check across the batch" data={stats.issueCodes} label={(k) => k} />
           </div>
 

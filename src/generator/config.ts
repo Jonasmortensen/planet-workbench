@@ -81,10 +81,26 @@ export const CONFIG = {
     /** Notable NPCs per settlement, by settlement size (1..5). */
     perSettlement: { 1: [1, 2], 2: [2, 3], 3: [2, 4], 4: [3, 6], 5: [4, 8] } as Record<number, [number, number]>,
     joinOrgChance: 0.45,
-    ownPoiChance: 0.35,
-    workAtPoiChance: 0.2,
     currentEventChance: 0.3,
     epithetChance: 0.3,
+  },
+
+  places: {
+    /** Chance an NPC is at work rather than home, before adjustments (elders and nobles stay home more). */
+    atWork: 0.7,
+    /** The same for NPCs who publicly lead something. */
+    leaderAtWork: 0.9,
+    /** Chance an NPC whose occupation runs a business owns their own place. */
+    ownsBusiness: 0.5,
+    /** Chance to share an existing place of a fitting type instead of opening another. */
+    reuseVenue: 0.7,
+    /**
+     * Chance of a surprising location for an NPC whose data offers one:
+     * base + perWeight x (total weight of their options), capped. Tuned for 20 to 30% overall.
+     */
+    surprising: { base: 0.14, perWeight: 0.05, max: 0.5 },
+    /** NPC-carried treasures: chance = base + perScore x power score, capped. Tuned for 10 to 20% of NPCs. */
+    npcTreasure: { base: 0.02, perScore: 0.06, max: 0.75 },
   },
 
   relationships: {

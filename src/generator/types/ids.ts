@@ -1,7 +1,7 @@
 import type { PlanetBundle } from './entities';
 
 export const ENTITY_KINDS = [
-  'planet', 'country', 'settlement', 'organization', 'npc', 'species', 'language', 'religion',
+  'planet', 'country', 'settlement', 'organization', 'npc', 'poi', 'treasure', 'species', 'language', 'religion',
 ] as const;
 export type EntityKind = (typeof ENTITY_KINDS)[number];
 
@@ -11,6 +11,8 @@ const PREFIX: Record<EntityKind, string> = {
   settlement: 'settlement',
   organization: 'org',
   npc: 'npc',
+  poi: 'poi',
+  treasure: 'treasure',
   species: 'species',
   language: 'lang',
   religion: 'religion',
@@ -46,6 +48,10 @@ export function resolveEntity(bundle: PlanetBundle, id: string): unknown | undef
       return bundle.organizations[id];
     case 'npc':
       return bundle.npcs[id];
+    case 'poi':
+      return bundle.pois[id];
+    case 'treasure':
+      return bundle.treasures[id];
     case 'species':
       return bundle.species[id];
     case 'language':

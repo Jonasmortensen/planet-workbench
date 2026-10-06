@@ -80,6 +80,8 @@ export const FACT_GROUPS: Record<EntityKind, FactGroup[]> = {
     { key: 'name', label: 'Name and whereabouts' },
     { key: 'appearance', label: 'Appearance', seen: 'meet' },
     { key: 'role', label: 'Occupation and role' },
+    /** Where they can be found. Only public locations are ever learned. */
+    { key: 'location', label: 'Whereabouts' },
     { key: 'personality', label: 'Personality' },
     { key: 'history', label: 'Life story' },
     { key: 'affiliations', label: 'Affiliations' },
@@ -87,6 +89,14 @@ export const FACT_GROUPS: Record<EntityKind, FactGroup[]> = {
     { key: 'goal', label: 'Goal' },
     { key: 'fear', label: 'Fear' },
     { key: 'hooks', label: 'Work on offer' },
+  ],
+  poi: [
+    { key: 'name', label: 'Name', seen: 'arrival' },
+    { key: 'details', label: 'Type, owner and standing', seen: 'arrival' },
+  ],
+  treasure: [
+    { key: 'name', label: 'Name' },
+    { key: 'details', label: 'What it is and where' },
   ],
   species: [
     { key: 'name', label: 'Name', seen: 'arrival' },

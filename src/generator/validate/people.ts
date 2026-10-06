@@ -151,7 +151,7 @@ export const checkNpcLinks: Check = (bundle) => {
       if (!e) issues.push(error('ref.current_event', n.id, `current_event_involvement points to missing event ${n.current_event_involvement}`));
       else if (!e.refs.includes(n.id)) issues.push(error('ref.current_event', n.id, `Event ${n.current_event_involvement} does not list this NPC`));
     }
-    if (n.workplace_poi_id && !bundle.settlements[n.settlement_id]?.points_of_interest.some((p) => p.id === n.workplace_poi_id)) {
+    if (n.workplace_poi_id && bundle.pois[n.workplace_poi_id]?.settlement_id !== n.settlement_id) {
       issues.push(error('ref.poi', n.id, `workplace_poi_id ${n.workplace_poi_id} is not in the NPC's home settlement`));
     }
     const lifespan = bundle.species[n.species_id]?.lifespan_years ?? Infinity;
@@ -166,11 +166,9 @@ export const checkNpcLinks: Check = (bundle) => {
       if (bundle.npcs[ref]?.current_event_involvement !== id) issues.push(error('ref.current_event', e.settlement, `Event ${id} lists ${ref}, who is not involved in it`));
     }
   }
-  for (const s of Object.values(bundle.settlements)) {
-    for (const poi of s.points_of_interest) {
-      const owner = poi.owner_npc_id ? bundle.npcs[poi.owner_npc_id] : null;
-      if (owner && owner.settlement_id !== s.id) issues.push(warning('poi.owner', s.id, `${poi.id} is owned by ${owner.id}, who lives elsewhere`));
-    }
+  for (const poi of Object.values(bundle.pois)) {
+    const owner = poi.owner_npc_id ? bundle.npcs[poi.owner_npc_id] : null;
+    if (owner && owner.settlement_id !== poi.settlement_id) issues.push(warning('poi.owner', poi.id, `Owned by ${owner.id}, who lives elsewhere`));
   }
   return issues;
 };

@@ -197,11 +197,24 @@ export const DISTRICT_DESCRIPTIONS: Template[] = [
 ];
 
 export const POI_DESCRIPTIONS: Template[] = [
-  { text: '{name|cap} is {poi|a} in {settlement}[, run by {owner}]. {flavor}' },
-  { text: '{poi|a|cap} in {settlement}[ owned by {owner}]. {flavor}' },
-  { text: '{flavor} {name|cap} is {poi|a}[ belonging to {owner}].' },
-  { text: 'Locals know {name} as {poi|a}[ kept by {owner}]. {flavor}' },
+  { text: '{name|cap} is {poi|a} in {settlement}[, run by {owner}], and {significance}. {flavor}' },
+  { text: '{poi|a|cap} in {settlement}[ owned by {owner}], and {significance}. {flavor}' },
+  { text: '{flavor} {name|cap} is {poi|a}[ belonging to {owner}]: {significance}.' },
 ];
+
+/** Homes: {owner} is the head of the household. */
+export const HOME_DESCRIPTIONS: Template[] = [
+  { text: '{name|cap} is {poi|a} in {settlement}, home to {residents}. {flavor}' },
+  { text: '{owner|cap} lives here[ with {household}]: {poi|a} in {settlement}. {flavor}' },
+];
+
+/** Treasures. {where} is "kept at X in Y" or "carried by X"; {detail} explains a fact-based treasure. */
+export const TREASURE_DESCRIPTIONS: Template[] = [
+  { text: '{name|cap} is {rarity|a} {noun}, {where}.[ {detail}][ It is guarded by {guards}.] {visibility}', when: { embodied: ['no'] } },
+  { text: 'A {rarity} {noun}, {where}.[ {detail}][ {guards|cap} keep watch over it.] {visibility}', when: { embodied: ['no'] } },
+  { text: '{name|cap} is not something to steal: it is {holder}’s own {gift}, {rarity|a} {noun}.[ {detail}] {visibility}', when: { embodied: ['yes'] } },
+];
+
 
 // ---------------------------------------------------------------------------
 // Organization

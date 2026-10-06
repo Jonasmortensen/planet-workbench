@@ -2,7 +2,7 @@ import { CONFIG } from '../config';
 import {
   ADJECTIVES, AESTHETIC_TABLE, BIOME_TABLE, CUSTOM_TABLE, DEFENSE_TABLE, DISTRICT_NAME_PATTERNS, DISTRICT_TABLE,
   GOVERNING_BODY_TABLE, GOVERNMENT_TABLE, HISTORICAL_EVENT_TABLE, INDUSTRY_TABLE, LINK_TYPE_TABLE,
-  MOOD_BY_STABILITY, NICKNAME_NOUNS, NICKNAME_PATTERNS, NOUNS, POI_TABLE, SETTLEMENT_TYPE_TABLE, TERRAIN_LANDFORMS, eligible,
+  MOOD_BY_STABILITY, NICKNAME_NOUNS, NICKNAME_PATTERNS, NOUNS, SETTLEMENT_TYPE_TABLE, TERRAIN_LANDFORMS, eligible,
   type ConstraintContext,
 } from '../content';
 import { attachSuffix, fillPattern, makeBareName, makePlaceName, pickPattern } from '../naming';
@@ -10,11 +10,11 @@ import { normalizeShares, type Rng } from '../rng';
 import { hasLiquidWater } from '../rules/physical';
 import { settlementTypeProblems, typeAllowsBiome } from '../rules/settlement';
 import type {
-  Country, District, HistoricalEvent, PlanetBundle, PointOfInterest, ReligionShare, Settlement, SpeciesShare,
+  Country, District, HistoricalEvent, PlanetBundle, ReligionShare, Settlement, SpeciesShare,
 } from '../types/entities';
 import {
   AESTHETICS, CORRUPTION_LEVELS, CUSTOMS, DEFENSE_TYPES, DISTRICT_TYPES, EVENT_OUTCOMES, GARRISON_STRENGTHS,
-  HISTORICAL_EVENT_TYPES, INDUSTRIES, LAW_LEVELS, LINK_TYPES, MARKET_SIZES, MILITARY_STRENGTHS, MOODS, POI_TYPES,
+  HISTORICAL_EVENT_TYPES, INDUSTRIES, LAW_LEVELS, LINK_TYPES, MARKET_SIZES, MILITARY_STRENGTHS, MOODS,
   SETTLEMENT_TYPES, SOCIAL_STRUCTURES, STABILITY_LEVELS, WEALTH_LEVELS,
   type Biome, type LinkType, type SettlementType, type Terrain,
 } from '../types/enums';
@@ -25,7 +25,6 @@ import { biased, clamp, floorSig, scaleAt, shiftScale } from './util';
 
 interface Counters {
   settlement: number;
-  poi: number;
 }
 
 /**
@@ -34,7 +33,7 @@ interface Counters {
  * interest and history. Connections are built once every settlement exists.
  */
 export function generateSettlementsStep(bundle: PlanetBundle, rng: Rng): void {
-  const counters: Counters = { settlement: 0, poi: 0 };
+  const counters: Counters = { settlement: 0 };
   const usedNames = new Set<string>();
   for (const country of Object.values(bundle.countries)) {
     buildCountrySettlements(bundle, rng.fork(country.id), country, counters, usedNames);
@@ -92,7 +91,7 @@ function buildCountrySettlements(
   order.forEach(({ t }, k) => {
     const id = makeId('settlement', counters.settlement++);
     ids.push(id);
-    const s = buildSettlement(bundle, rng.fork(`settlement:${k}`), id, t, country, points[k], Math.max(5, floorSig(pops[k] * scale, 3)), ctx, counters, usedNames);
+    const s = buildSettlement(bundle, rng.fork(`settlement:${k}`), id, t, country, points[k], Math.max(5, floorSig(pops[k] * scale, 3)), ctx, usedNames);
     bundle.settlements[id] = s;
   });
   country.capital_settlement_id = ids[0];
@@ -118,7 +117,7 @@ function typeWeight(t: SettlementType, country: Country, bundle: PlanetBundle): 
 
 function buildSettlement(
   bundle: PlanetBundle, rng: Rng, id: string, type: SettlementType, country: Country, position: Point,
-  population: number, ctx: ConstraintContext, counters: Counters, usedNames: Set<string>,
+  population: number, ctx: ConstraintContext, usedNames: Set<string>,
 ): Settlement {
   const p = bundle.planet;
   const def = SETTLEMENT_TYPE_TABLE[type];
@@ -230,33 +229,6 @@ function buildSettlement(
     description: '',
   }));
 
-  // Points of interest
-  const poiRng = rng.fork('pois');
-  const poiPool = eligible(POI_TYPES, POI_TABLE, ctx, (k, d) => {
-    if (d.minSize > size) return 0;
-    let w = d.weight * (d.districts.some((dt) => districtTypes.includes(dt)) ? 3 : 1);
-    if (k === 'docks' && !coastal) return 0;
-    if (k === 'spaceport' && !['connected', 'hub', 'peripheral'].includes(p.galactic_connectivity) && type !== 'orbital_station') w *= 0.2;
-    if (k === 'black_market' && (LAW_LEVELS.indexOf(law) >= 3 || CORRUPTION_LEVELS.indexOf(corruption) >= 3)) w *= 3;
-    if (k === 'palace' && type !== 'capital') w *= 0.2;
-    if (k === 'temple' || k === 'shrine') w *= religions.length > 0 ? 1 : 0.2;
-    return w;
-  });
-  const [pMin, pMax] = CONFIG.settlement.pois[size];
-  const poiTypes = poiRng.weightedSample(poiPool, poiRng.int(pMin, pMax));
-  const pois: PointOfInterest[] = poiTypes.map((pt) => ({
-    id: `poi_${counters.poi++}`,
-    name: fillPattern(pickPattern(poiRng, POI_TABLE[pt].namePatterns), {
-      adjective: () => poiRng.pick(ADJECTIVES),
-      noun: () => poiRng.pick(NOUNS),
-      noun2: () => poiRng.pick(NOUNS),
-      root: () => makeBareName(ph, poiRng, 2),
-    }),
-    type: pt,
-    description: '',
-    owner_npc_id: null,
-  }));
-
   // Atmosphere
   const aRng = rng.fork('atmosphere');
   const wealthIdx = WEALTH_LEVELS.indexOf(wealth);
@@ -311,7 +283,7 @@ function buildSettlement(
     defenses,
     garrison_strength: garrison,
     districts,
-    points_of_interest: pois,
+    poi_ids: [],
     mood,
     aesthetic,
     local_customs: customs,

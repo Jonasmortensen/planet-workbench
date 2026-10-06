@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { DISPOSITIONS, PLANET_ID, generatePlanet, resolveEntity, type PlanetBundle } from '../src/generator';
 import {
   GENERIC_OPTIONS, aboutOption, applyTurn, ask, createKnowledge, findReferral, groupsSeen, isKnown, isPublicOrg, knows, meet,
-  npcKnows, randomNpc, type Knowledge,
+  npcKnows, poiInPlainSight, randomNpc, type Knowledge,
 } from '../src/explore';
 import { Rng } from '../src/generator/rng';
 
-const ARTIFACT = /[{}<>[\]]|undefined|null|NaN/;
+const ARTIFACT = /[{}<>[\]]|\b(?:undefined|null|NaN)\b/;
 
 /** Play a session: meet random NPCs and ask them everything, including about known entities. */
 function play(b: PlanetBundle, turns: number, seed: string): { k: Knowledge; answers: string[] } {
@@ -78,6 +78,11 @@ describe('dialogue', () => {
         const o = b.organizations[id];
         // Secret and outlawed organizations can be named in rumors, but never described.
         if (o && !isPublicOrg(o)) expect(groups).toEqual(['name']);
+        // Secret whereabouts, hidden places and non-public treasures are never learned.
+        const n = b.npcs[id];
+        if (n && !n.location_public) expect(groups, id).not.toContain('location');
+        if (b.treasures[id]) expect(b.treasures[id].visibility, id).toBe('public');
+        if (b.pois[id]) expect(poiInPlainSight(b, id), id).toBe(true);
       }
       expect(Object.keys(k.entities).length).toBeGreaterThan(20);
       for (const h of k.rumors) expect(h.rumor).not.toHaveProperty('is_true');

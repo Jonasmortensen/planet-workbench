@@ -1,4 +1,4 @@
-import type { PlanetBundle } from '../../generator';
+import { LOCATION_REASONS, POI_SIGNIFICANCES, TREASURE_RARITIES, isSurprising, type PlanetBundle } from '../../generator';
 
 /** Compact per-planet facts for batch statistics (small enough to post from a worker). */
 export interface PlanetSummary {
@@ -27,10 +27,23 @@ export interface PlanetSummary {
   anomalies: number;
   true_rumors: number;
   rumors: number;
+  poi_count: number;
+  treasure_count: number;
+  /** Counts per value, kept as records so large batches stay small. */
+  treasure_categories: Record<string, number>;
+  treasure_rarities: Record<string, number>;
+  /** Number of points of interest holding N treasures of their own, keyed by N. */
+  treasures_per_poi: Record<string, number>;
+  poi_significances: Record<string, number>;
+  location_reasons: Record<string, number>;
+  surprising_npcs: number;
+  npcs_carrying: number;
   errors: number;
   warnings: number;
   codes: Record<string, number>;
 }
+
+const countBy = (values: string[]) => values.reduce<Record<string, number>>((m, v) => ({ ...m, [v]: (m[v] ?? 0) + 1 }), {});
 
 export function summarize(b: PlanetBundle, ms: number): PlanetSummary {
   const npcs = Object.values(b.npcs);
@@ -51,6 +64,10 @@ export function summarize(b: PlanetBundle, ms: number): PlanetSummary {
     ...Object.values(b.organizations).flatMap((o) => o.rumors),
     ...npcs.flatMap((n) => n.rumors_about),
   ];
+  const treasures = Object.values(b.treasures);
+  const own = new Map<string, number>(Object.keys(b.pois).map((id) => [id, 0]));
+  for (const t of treasures) if ('poi_id' in t.holder) own.set(t.holder.poi_id, (own.get(t.holder.poi_id) ?? 0) + 1);
+  const carriers = new Set(treasures.flatMap((t) => ('npc_id' in t.holder ? [t.holder.npc_id] : [])));
   const codes: Record<string, number> = {};
   for (const v of b.validation) codes[`${v.severity}:${v.code}`] = (codes[`${v.severity}:${v.code}`] ?? 0) + 1;
   return {
@@ -77,6 +94,15 @@ export function summarize(b: PlanetBundle, ms: number): PlanetSummary {
     anomalies: b.planet.anomalies.length,
     true_rumors: rumors.filter((r) => r.is_true).length,
     rumors: rumors.length,
+    poi_count: own.size,
+    treasure_count: treasures.length,
+    treasure_categories: countBy(treasures.map((t) => t.category)),
+    treasure_rarities: countBy(treasures.map((t) => t.rarity)),
+    treasures_per_poi: countBy([...own.values()].map(String)),
+    poi_significances: countBy(Object.values(b.pois).map((p) => p.significance)),
+    location_reasons: countBy(npcs.map((n) => n.location_reason)),
+    surprising_npcs: npcs.filter((n) => isSurprising(n.location_reason)).length,
+    npcs_carrying: carriers.size,
     errors: b.validation.filter((v) => v.severity === 'error').length,
     warnings: b.validation.filter((v) => v.severity === 'warning').length,
     codes,
@@ -88,6 +114,15 @@ export type Distribution = { key: string; count: number }[];
 function tally(values: string[], order?: string[]): Distribution {
   const m = new Map<string, number>();
   for (const v of values) m.set(v, (m.get(v) ?? 0) + 1);
+  const entries = [...m].map(([key, count]) => ({ key, count }));
+  if (order) return entries.sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key));
+  return entries.sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
+}
+
+/** Merge per-planet count records into one distribution. */
+function merged(records: Record<string, number>[], order?: readonly string[]): Distribution {
+  const m = new Map<string, number>();
+  for (const r of records) for (const [k, v] of Object.entries(r)) m.set(k, (m.get(k) ?? 0) + v);
   const entries = [...m].map(([key, count]) => ({ key, count }));
   if (order) return entries.sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key));
   return entries.sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
@@ -130,6 +165,16 @@ export interface BatchStats {
   orgTypes: Distribution;
   settlementTypes: Distribution;
   issueCodes: Distribution;
+  avgPois: number;
+  avgTreasures: number;
+  treasuresPerPoi: number;
+  surprisingShare: number;
+  carryingShare: number;
+  treasureCategories: Distribution;
+  treasureRarities: Distribution;
+  treasuresPerPoiDist: Distribution;
+  poiSignificances: Distribution;
+  locationReasons: Distribution;
 }
 
 export function aggregate(rows: PlanetSummary[]): BatchStats {
@@ -160,5 +205,15 @@ export function aggregate(rows: PlanetSummary[]): BatchStats {
     orgTypes: tally(rows.flatMap((r) => r.org_types)),
     settlementTypes: tally(rows.flatMap((r) => r.settlement_types)),
     issueCodes: tally(codes),
+    avgPois: avg(rows.map((r) => r.poi_count)),
+    avgTreasures: avg(rows.map((r) => r.treasure_count)),
+    treasuresPerPoi: sum((r) => Object.entries(r.treasures_per_poi).reduce((a, [k, v]) => a + Number(k) * v, 0)) / Math.max(1, sum((r) => r.poi_count)),
+    surprisingShare: sum((r) => r.surprising_npcs) / Math.max(1, sum((r) => r.npc_count)),
+    carryingShare: sum((r) => r.npcs_carrying) / Math.max(1, sum((r) => r.npc_count)),
+    treasureCategories: merged(rows.map((r) => r.treasure_categories)),
+    treasureRarities: merged(rows.map((r) => r.treasure_rarities), TREASURE_RARITIES),
+    treasuresPerPoiDist: merged(rows.map((r) => r.treasures_per_poi)).sort((a, b) => Number(a.key) - Number(b.key)),
+    poiSignificances: merged(rows.map((r) => r.poi_significances), POI_SIGNIFICANCES),
+    locationReasons: merged(rows.map((r) => r.location_reasons), LOCATION_REASONS),
   };
 }

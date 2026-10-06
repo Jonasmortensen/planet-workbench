@@ -1,6 +1,6 @@
-import { FEAR_PHRASE, GOAL_PHRASE } from '../content/prose/lexicon';
+import { FEAR_PHRASE, GOAL_PHRASE, SECRET_PHRASE } from '../content/prose/lexicon';
 import type { Motive, Npc, PlanetBundle } from '../types/entities';
-import type { FearType, GoalType } from '../types/enums';
+import type { FearType, GoalType, SecretType } from '../types/enums';
 import { entityName } from '../types/ids';
 import { fill, listOf } from './engine';
 
@@ -69,6 +69,10 @@ export function goalPhrase(b: PlanetBundle, m: Motive<GoalType>, p: Pronouns): s
 
 export function fearPhrase(b: PlanetBundle, m: Motive<FearType>, p: Pronouns): string {
   return phrase(b, m, FEAR_PHRASE[m.type], p);
+}
+
+export function secretPhrase(b: PlanetBundle, m: Motive<SecretType>, p: Pronouns): string {
+  return phrase(b, m, SECRET_PHRASE[m.type], p);
 }
 
 export { listOf };

@@ -6,6 +6,7 @@ import { ValidationPage } from './ValidationPage';
 import { CountryPage } from './CountryPage';
 import { NpcPage } from './NpcPage';
 import { OrganizationPage } from './OrganizationPage';
+import { PoiPage, TreasurePage } from './PlacePages';
 import { LanguagePage, ReligionPage, SpeciesPage } from './PeoplePages';
 import { PlanetPage } from './PlanetPage';
 import { RelationsPage } from './RelationsPage';
@@ -30,6 +31,12 @@ export function EntityPage() {
       break;
     case 'npc':
       if (bundle.npcs[selectedId]) return <NpcPage key={selectedId} npc={bundle.npcs[selectedId]} />;
+      break;
+    case 'poi':
+      if (bundle.pois[selectedId]) return <PoiPage key={selectedId} poi={bundle.pois[selectedId]} />;
+      break;
+    case 'treasure':
+      if (bundle.treasures[selectedId]) return <TreasurePage key={selectedId} treasure={bundle.treasures[selectedId]} />;
       break;
     case 'species':
       if (bundle.species[selectedId]) return <SpeciesPage key={selectedId} species={bundle.species[selectedId]} />;

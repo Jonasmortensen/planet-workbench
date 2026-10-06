@@ -1,17 +1,21 @@
 import {
+  POI_SIGNIFICANCES, npcsAt, treasuresAt,
   CORRUPTION_LEVELS, GARRISON_STRENGTHS, LAW_LEVELS, MARKET_SIZES, WEALTH_LEVELS, type Settlement,
 } from '../../generator';
 import { Enum, EnumList, Field, RawJson, Scale, Section, Table } from '../components/Fields';
+import { PresenceChip } from '../components/Places';
 import { Ref, RefList } from '../components/Ref';
 import { HistoryTable, Prose, ReferencedBy, ReligionTable, RumorTable, SpeciesTable } from '../components/Shared';
 import { useBundle } from '../context';
 import { Known, KnowScope, useKnow } from '../know';
-import { formatPopulation, formatYearsAgo } from '../format';
+import { formatPopulation, formatYearsAgo, humanize } from '../format';
 
 export function SettlementPage({ settlement: s }: { settlement: Settlement }) {
   const { bundle } = useBundle();
-  const { isKnown, explore } = useKnow();
+  const { isKnown, knows, explore } = useKnow();
   const country = bundle.countries[s.country_id];
+  const pois = s.poi_ids.map((id) => bundle.pois[id]).filter((p) => isKnown(p.id))
+    .sort((a, b) => POI_SIGNIFICANCES.indexOf(b.significance) - POI_SIGNIFICANCES.indexOf(a.significance));
   const people = Object.values(bundle.npcs)
     .filter((n) => n.settlement_id === s.id)
     .sort((a, b) => (a.npc_category === b.npc_category ? 0 : a.npc_category === 'leader' ? -1 : 1));
@@ -86,14 +90,14 @@ export function SettlementPage({ settlement: s }: { settlement: Settlement }) {
           <Table head={['Name', 'Type', 'Description']} rows={s.districts.map((d) => [d.name, <Enum value={d.type} />, <span className="small">{d.description}</span>])} />
         </Section>
 
-        <Section title="Points of interest" wide>
+        <Section title={`Points of interest (${pois.length})`} wide>
           <Table
-            head={['Name', 'Type', 'Owner', 'Description']}
-            rows={s.points_of_interest.map((poi) => [
-              <span title={poi.id}>{poi.name}</span>, <Enum value={poi.type} />,
-              poi.owner_npc_id ? <Ref id={poi.owner_npc_id} /> : <span className="muted">-</span>,
-              // Descriptions name the owner, so they wait until the owner is known.
-              !poi.owner_npc_id || isKnown(poi.owner_npc_id) ? <span className="small">{poi.description}</span> : <span className="muted">?</span>,
+            head={['Name', 'Type', 'Significance', 'People', 'Treasures']}
+            rows={pois.map((poi) => [
+              <Ref id={poi.id} />, <Enum value={poi.type} />, <Enum value={poi.significance} />,
+              // In the explorer, only the people and treasures the player knows are counted.
+              npcsAt(bundle, poi.id).filter((n) => !explore || knows(n.id, 'location')).length,
+              treasuresAt(bundle, poi.id).filter((t) => isKnown(t.id)).length,
             ])}
           />
         </Section>
@@ -125,7 +129,7 @@ export function SettlementPage({ settlement: s }: { settlement: Settlement }) {
 
         <Section title={`People (${people.length})`} wide>
           <Table
-            head={explore ? ['Name', 'Occupation', 'Species', 'Leads', 'Workplace'] : ['Name', 'Category', 'Occupation', 'Species', 'Leads', 'Workplace']}
+            head={explore ? ['Name', 'Occupation', 'Species', 'Leads', 'Found at'] : ['Name', 'Category', 'Occupation', 'Species', 'Leads', 'Found at']}
             rows={people.filter((n) => isKnown(n.id)).map((n) => {
               const leads = n.leads.filter((l) => !explore || l.public);
               return [
@@ -133,7 +137,7 @@ export function SettlementPage({ settlement: s }: { settlement: Settlement }) {
                 <Known id={n.id} group="role"><Enum value={n.occupation} /></Known>,
                 <Known id={n.id} group="appearance"><Ref id={n.species_id} /></Known>,
                 <Known id={n.id} group="role">{leads.length > 0 ? <RefList ids={leads.map((l) => l.entity_id)} /> : <span className="muted">-</span>}</Known>,
-                <Known id={n.id} group="role">{n.workplace_poi_id ? s.points_of_interest.find((p) => p.id === n.workplace_poi_id)?.name : <span className="muted">-</span>}</Known>,
+                <Known id={n.id} group="location"><Ref id={n.location_poi_id} /> <span className="muted small">{humanize(n.location_reason).toLowerCase()}</span>{!n.location_public && <> <PresenceChip isPublic={false} /></>}</Known>,
               ];
             })}
           />

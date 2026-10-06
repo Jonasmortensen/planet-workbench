@@ -8,6 +8,8 @@ export const KIND_ICON: Record<EntityKind, string> = {
   settlement: '▣',
   organization: '◆',
   npc: '☺',
+  poi: '⌂',
+  treasure: '◈',
   species: '✦',
   language: '✎',
   religion: '✧',

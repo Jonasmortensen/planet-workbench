@@ -55,10 +55,13 @@ const SECTION_GROUPS: Mapping = {
     Members: 'members', History: 'history', Flavor: HIDDEN,
   },
   npc: {
-    Identity: ['name', 'appearance'], 'Category and role': 'role', Appearance: 'appearance', Personality: 'personality',
+    Identity: ['name', 'appearance'], 'Category and role': 'role', Whereabouts: 'location', Treasures: 'name',
+    Appearance: 'appearance', Personality: 'personality',
     Motivation: ['goal', 'fear'], Capabilities: ['role', 'appearance'], Affiliations: 'affiliations', Relationships: 'relationships',
     'Story hooks': 'hooks', Life: 'history',
   },
+  poi: { Identity: 'name', 'People present': 'name', Treasures: 'name', 'Carried by people here': 'name' },
+  treasure: { Identity: 'name', Where: 'details', About: 'details' },
   species: { Biology: 'biology', Languages: 'biology', 'Present in': HIDDEN },
   language: { Language: 'details', Phonology: 'details', 'Present in': HIDDEN },
   religion: { Faith: 'details', 'Present in': HIDDEN },
@@ -99,6 +102,14 @@ const FIELD_GROUPS: Mapping = {
     'Native tongue': 'appearance', Age: 'appearance', Gender: 'appearance', Category: HIDDEN, Skills: 'role',
     'Special abilities': 'personality', Possessions: 'appearance', Wealth: 'appearance', Goal: 'goal', Fear: 'fear',
     Secret: HIDDEN, 'Current event': 'hooks', 'Quest hooks': 'hooks', 'Rumors about': HIDDEN,
+    // Whereabouts are only ever learned when public, so the presence marker and its reason are safe to show.
+    'Found at': 'location', 'Why there': 'location', 'Because of': 'location', Presence: 'location',
+  },
+  poi: {
+    Name: 'name', Type: 'details', Significance: 'details', Settlement: 'name', Owner: 'details', Seed: HIDDEN,
+  },
+  treasure: {
+    Name: 'name', Category: 'details', Rarity: 'details', Visibility: 'details', Seed: HIDDEN,
   },
 };
 

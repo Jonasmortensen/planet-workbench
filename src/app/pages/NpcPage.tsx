@@ -1,5 +1,6 @@
-import { DISPOSITIONS, SOCIAL_RANKS, WEALTH_LEVELS, type Npc } from '../../generator';
+import { DISPOSITIONS, SOCIAL_RANKS, WEALTH_LEVELS, treasuresCarriedBy, type Npc } from '../../generator';
 import { Enum, EnumList, Field, RawJson, Scale, Section, Table } from '../components/Fields';
+import { PresenceChip, TreasureTable } from '../components/Places';
 import { Ref, RefList } from '../components/Ref';
 import { MotiveView } from '../components/Relations';
 import { HistoryTable, Prose, ReferencedBy, RumorTable } from '../components/Shared';
@@ -12,7 +13,9 @@ export function NpcPage({ npc: n }: { npc: Npc }) {
   const { isKnown, explore } = useKnow();
   const settlement = bundle.settlements[n.settlement_id];
   const species = bundle.species[n.species_id];
-  const workplace = n.workplace_poi_id ? settlement.points_of_interest.find((p) => p.id === n.workplace_poi_id) : null;
+  const workplace = n.workplace_poi_id ? bundle.pois[n.workplace_poi_id] : null;
+  const location = bundle.pois[n.location_poi_id];
+  const treasures = treasuresCarriedBy(bundle, n.id);
   const event = n.current_event_involvement ? settlement.current_events.find((e) => e.id === n.current_event_involvement) : null;
 
   return (
@@ -59,7 +62,18 @@ export function NpcPage({ npc: n }: { npc: Npc }) {
           <Field label="Occupation"><Enum value={n.occupation} /></Field>
           <Field label="Social rank"><Scale value={n.social_rank} scale={SOCIAL_RANKS} /></Field>
           <Field label="Story role"><Enum value={n.role_type} /></Field>
-          <Field label="Workplace">{workplace ? <>{workplace.name} <span className="muted">({humanize(workplace.type)}{workplace.owner_npc_id === n.id ? ', owner' : ''})</span></> : null}</Field>
+          <Field label="Workplace">{workplace ? <><Ref id={workplace.id} /> <span className="muted">({humanize(workplace.type)}{workplace.owner_npc_id === n.id ? ', owner' : ''})</span></> : null}</Field>
+        </Section>
+
+        <Section title="Whereabouts">
+          <Field label="Found at">{location && <><Ref id={location.id} icon /> <span className="muted">({humanize(location.type).toLowerCase()})</span></>}</Field>
+          <Field label="Why there"><Enum value={n.location_reason} /></Field>
+          <Field label="Because of">{n.location_reason_ref && <Ref id={n.location_reason_ref} icon />}</Field>
+          <Field label="Presence"><PresenceChip isPublic={n.location_public} /></Field>
+        </Section>
+
+        <Section title={`Treasures (${treasures.length})`}>
+          <TreasureTable treasures={treasures} />
         </Section>
 
         <Section title="Appearance">

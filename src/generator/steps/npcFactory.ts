@@ -1,6 +1,6 @@
 import {
   APPEARANCE_TABLE, CLOTHING_BY_RANK, CLOTHING_CONSTRAINTS, CULTURE_VALUE_TABLE, DISTINGUISHING_MARK_TABLE, EPITHETS,
-  HISTORICAL_EVENT_TABLE, OCCUPATION_TABLE, POSSESSION_CONSTRAINTS, QUIRK_TABLE, SKILL_CONSTRAINTS, SPEECH_BASE,
+  HISTORICAL_EVENT_TABLE, INDUSTRY_WORK, OCCUPATION_TABLE, POSSESSION_CONSTRAINTS, SETTLEMENT_TYPE_WORK, QUIRK_TABLE, SKILL_CONSTRAINTS, SPEECH_BASE,
   TRAIT_TABLE, eligible, meets, type ConstraintContext,
 } from '../content';
 import { makePersonName } from '../naming';
@@ -89,7 +89,10 @@ export function createNpc(bundle: PlanetBundle, rng: Rng, opts: NpcOptions): Npc
   const family = opts.familyName ?? name.family;
 
   // Occupation, rank, role
-  const occupation = opts.occupation ?? r.weighted(eligible(OCCUPATIONS, OCCUPATION_TABLE, ctx));
+  // A mining colony breeds miners, a port sailors: the settlement's type and industries tilt the odds.
+  const flavor = [SETTLEMENT_TYPE_WORK[settlement.settlement_type], ...settlement.primary_industries.map((i) => INDUSTRY_WORK[i])];
+  const occupation = opts.occupation ?? r.weighted(eligible(OCCUPATIONS, OCCUPATION_TABLE, ctx,
+    (k, d) => d.weight * (1 + 2 * flavor.reduce((a, f) => a + (f.occupations[k] ?? 0), 0))));
   const occ = OCCUPATION_TABLE[occupation];
   const rank = opts.rank ?? occ.rank;
   const role = opts.role ?? r.weighted(biased(ROLE_TYPES, { ...occ.roles, ruler: 0 }));
@@ -193,6 +196,10 @@ export function createNpc(bundle: PlanetBundle, rng: Rng, opts: NpcOptions): Npc
     social_rank: rank,
     role_type: role,
     workplace_poi_id: null,
+    location_poi_id: '',
+    location_reason: 'lives_here',
+    location_reason_ref: null,
+    location_public: true,
     appearance,
     clothing,
     distinguishing_mark: mark,

@@ -1,7 +1,7 @@
 import { CONFIG } from '../config';
-import { OCCUPATION_TABLE, ORG_TYPE_TABLE, SETTLEMENT_TYPE_TABLE, eligible } from '../content';
+import { INDUSTRY_WORK, OCCUPATION_TABLE, ORG_TYPE_TABLE, SETTLEMENT_TYPE_TABLE, SETTLEMENT_TYPE_WORK, eligible } from '../content';
 import type { Rng } from '../rng';
-import type { Npc, PlanetBundle, PointOfInterest } from '../types/entities';
+import type { Npc, PlanetBundle } from '../types/entities';
 import { OCCUPATIONS, type Occupation } from '../types/enums';
 import { bundleContext } from './context';
 import { createNpc } from './npcFactory';
@@ -18,44 +18,34 @@ export function generateNotablesStep(bundle: PlanetBundle, rng: Rng): void {
     const r = rng.fork(s.id);
     const size = SETTLEMENT_TYPE_TABLE[s.settlement_type].size;
     const count = r.int(...CONFIG.notables.perSettlement[size]);
+    // The settlement's signature trades: a mining colony's miners, a port's sailors.
     const ctx = bundleContext(bundle, { techLevel: bundle.countries[s.country_id].tech_level, biomes: [s.biome] });
-    const occupationsFor = (pred: (o: Occupation) => boolean) => eligible(OCCUPATIONS, OCCUPATION_TABLE, ctx).filter((x) => pred(x.value));
+    const flavor = [SETTLEMENT_TYPE_WORK[s.settlement_type], ...s.primary_industries.map((x) => INDUSTRY_WORK[x])];
+    const signature = eligible(OCCUPATIONS, OCCUPATION_TABLE, ctx, (k) => flavor.reduce((a, f) => a + (f.occupations[k] ?? 0), 0));
 
     for (let i = 0; i < count; i++) {
       const nr = r.fork(`notable:${i}`);
 
-      // Organization first: members take an occupation that fits the organization.
+      // The first notable always plies one of the settlement's signature trades.
+      const local = i === 0 && signature.length > 0;
+      // Otherwise organization first: members take an occupation that fits the organization.
       const orgs = s.organizations_present.map((id) => bundle.organizations[id]);
-      const joined = orgs.length > 0 && nr.chance(CONFIG.notables.joinOrgChance)
+      const joined = !local && orgs.length > 0 && nr.chance(CONFIG.notables.joinOrgChance)
         ? nr.weightedBy(orgs, (o) => PRESENCE_WEIGHT[o.presence.find((p) => p.settlement_id === s.id)!.strength])
         : null;
 
-      // Otherwise maybe the owner of an unowned point of interest.
-      let owned: PointOfInterest | null = null;
+      // Where they work and live is decided later, by the places step.
       let occupation: Occupation | undefined;
-      if (joined) {
+      if (local) occupation = nr.weighted(signature);
+      else if (joined) {
         const occ = Object.entries(ORG_TYPE_TABLE[joined.org_type].occupations).map(([k, w]) => ({ value: k as Occupation, weight: w ?? 0 }));
         occupation = nr.weighted(occ);
-      } else if (nr.chance(CONFIG.notables.ownPoiChance)) {
-        const free = s.points_of_interest.filter((p) => !p.owner_npc_id);
-        const candidates = free.filter((p) => occupationsFor((o) => OCCUPATION_TABLE[o].pois.includes(p.type)).length > 0);
-        if (candidates.length > 0) {
-          owned = nr.pick(candidates);
-          occupation = nr.weighted(occupationsFor((o) => OCCUPATION_TABLE[o].pois.includes(owned!.type)));
-        }
       }
 
       const npc = createNpc(bundle, nr, { settlementId: s.id, category: 'notable', occupation });
       if (joined) {
         npc.organization_ids.push(joined.id);
         joined.member_npc_ids.push(npc.id);
-      }
-      if (owned) {
-        owned.owner_npc_id = npc.id;
-        npc.workplace_poi_id = owned.id;
-      } else if (nr.chance(CONFIG.notables.workAtPoiChance)) {
-        const fits = s.points_of_interest.filter((p) => OCCUPATION_TABLE[npc.occupation].pois.includes(p.type));
-        if (fits.length > 0) npc.workplace_poi_id = nr.pick(fits).id;
       }
       involveInEvent(bundle, nr, npc);
     }

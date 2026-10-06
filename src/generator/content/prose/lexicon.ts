@@ -1,4 +1,5 @@
 import type {
+  LocationReason, PoiSignificance, TreasureCategory, TreasureRarity,
   AgeCategory, AnomalyType, AppearanceDetail, AtmosphereComposition, Attitude, Biome, Biosphere, ClothingStyle, CurrentEventType,
   Disposition, DistinguishingMark, DistrictType, EventOutcome, FearType, GoalType, GovernmentType, HistoricalEventType,
   Legality, MegastructureCondition, MilitaryDoctrine, MotiveReason, OrgStructure, OrgType, PlanetType, PoiType, PoliticalStructure, QuestType, RelationReason, RumorClaim,
@@ -356,6 +357,55 @@ export const POI_FLAVOR: Record<PoiType, string[]> = {
   theater: ['Its plays are famous, or infamous.', 'Opening nights here are social events.'],
   garden: ['It is the most peaceful place around.', 'Rare plants are tended here with care.'],
   crypt: ['The honored dead rest here.', 'Something stirs here, say the locals.'],
+  city_hall: ['Every permit, tax and grievance passes through it.', 'Its clerks know more than its councillors.'],
+  courthouse: ['Justice is done here, or at least announced.', 'Its benches have heard every excuse.'],
+  counting_house: ['Fortunes are tallied behind its iron doors.', 'Half the town owes it money.'],
+  trading_house: ['Its warehouses smell of distant ports.', 'Its agents haggle in a dozen tongues.'],
+  warehouse: ['Crates are stacked to the rafters.', 'No one asks what is inside.'],
+  farmstead: ['Its fields feed half the district.', 'It has been in the same family for generations.'],
+  mine: ['Its shafts go deeper than anyone admits.', 'The ground hums with distant picks.'],
+  hunting_lodge: ['Trophies cover every wall.', 'It smells of smoke and leather.'],
+  stables: ['Riders and beasts come and go all day.', 'Its handlers know every road out of town.'],
+  meeting_hall: ['Arguments here decide what the town does next.', 'Its benches are worn smooth by debate.'],
+  monastery: ['Bells mark the hours here.', 'Its keepers have taken vows of patience.'],
+  college: ['Scholars argue in its courtyards.', 'Its libraries are the pride of the region.'],
+  citadel: ['Its walls have never fallen.', 'Soldiers watch the town from its towers.'],
+  hideout: ['Few know how to find it.', 'The door only opens to the right knock.'],
+  estate: ['Its gates keep the world at a polite distance.', 'Servants outnumber the family three to one.'],
+  manor: ['It is grand, if a little faded.', 'Its gardens are its owner’s pride.'],
+  townhouse: ['It is narrow, tall and respectable.', 'Its windows look over a busy street.'],
+  house: ['It is a plain, sturdy home.', 'A lamp burns in its window most nights.'],
+  cottage: ['Smoke curls from its chimney.', 'It is small but kept with care.'],
+  tenement: ['The stairs creak and the walls are thin.', 'A dozen families share its courtyard.'],
+  hovel: ['It keeps out most of the rain.', 'It is barely more than a roof.'],
+};
+
+/** Why someone is where they are, as a clause after their name ("Varn is at X, {phrase}"). */
+export const LOCATION_REASON_PHRASE: Record<LocationReason, string> = {
+  works_here: 'at work', lives_here: 'at home', owns_it: 'minding {their} own business',
+  visiting_family: 'visiting family', visiting_lover: 'with a lover', visiting_friend: 'visiting a friend',
+  secret_meeting: 'at a secret meeting', hiding: 'in hiding', worshipping: 'at worship', drinking: 'drinking',
+  gambling: 'gambling', training: 'training', imprisoned: 'imprisoned', guarding: 'standing guard',
+  negotiating: 'negotiating', recovering: 'recovering from illness', studying: 'studying',
+};
+
+export const SIGNIFICANCE_PHRASE: Record<PoiSignificance, string> = {
+  minor: 'a modest place', notable: 'a place of some note', major: 'one of the most important places in {settlement}',
+  landmark: 'a landmark known across {country}',
+};
+
+export const TREASURE_CATEGORY_NOUN: Record<TreasureCategory, string> = {
+  weapon: 'weapon', armor: 'suit of armor', artifact: 'artifact', technology: 'piece of technology', resource: 'store of riches',
+  wealth: 'fortune', relic: 'relic', knowledge: 'body of knowledge', intel: 'cache of intelligence', leverage: 'piece of evidence',
+  access: 'key', map: 'map',
+};
+
+export const RARITY_PHRASE: Record<TreasureRarity, string> = {
+  rare: 'rare', exceptional: 'exceptional', legendary: 'legendary',
+};
+
+export const TREASURE_VISIBILITY_LINE: Record<Visibility, string> = {
+  public: 'Its existence is common knowledge.', discreet: 'Only a few know it exists.', secret: 'Its keepers have told no one it exists.',
 };
 
 export const ANOMALY_PHRASE: Record<AnomalyType, string> = {

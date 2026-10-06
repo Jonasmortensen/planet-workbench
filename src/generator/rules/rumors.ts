@@ -168,7 +168,7 @@ export function rumorTruth(b: PlanetBundle, subjectId: string, claim: RumorClaim
       case 'haunting': return hasHazard(b, 'psychic_echoes') || hasAnomaly(b, ['temporal_echoes', 'phantom_signals']) ? { target: null } : null;
       case 'curse': return hasAnomaly(b, ['memory_fog', 'psychic_resonance', 'null_zones']) && s.current_events.some((e) => e.type === 'disappearances') ? { target: null } : null;
       case 'buried_ruins':
-        return p.precursor_presence !== 'none' && (s.settlement_type === 'ruin_town' || s.districts.some((d) => d.type === 'ruins') || s.points_of_interest.some((x) => x.type === 'ruin'))
+        return p.precursor_presence !== 'none' && (s.settlement_type === 'ruin_town' || s.districts.some((d) => d.type === 'ruins'))
           ? { target: null } : null;
       case 'treasure': return s.primary_industries.includes('relic_hunting') ? { target: null } : null;
       case 'smuggling': {

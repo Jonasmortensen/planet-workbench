@@ -7,6 +7,7 @@ import type { PlanetBundle, ValidationIssue } from '../types/entities';
 import { kindOf, resolveEntity } from '../types/ids';
 import { checkLeadership, checkLeadershipFit, checkNpcLinks, checkOrgSymmetry, checkOrganizations, requiredNpcFields } from './people';
 import { collectRefs, eventIndex } from './refs';
+import { checkPlaces, checkTreasures } from './places';
 import { checkMotives, checkProse, checkRumors } from './story';
 
 export { collectRefs, eventIndex } from './refs';
@@ -48,18 +49,23 @@ const checkRefs: Check = (bundle) => {
 
 const checkIds: Check = (bundle) => {
   const issues: ValidationIssue[] = [];
-  const maps = [bundle.countries, bundle.settlements, bundle.organizations, bundle.npcs, bundle.species, bundle.languages, bundle.religions];
+  const maps = [bundle.countries, bundle.settlements, bundle.organizations, bundle.npcs, bundle.species, bundle.languages, bundle.religions, bundle.pois, bundle.treasures];
   for (const map of maps) {
     for (const [key, entity] of Object.entries(map)) {
       if ((entity as { id: string }).id !== key) issues.push(error('id.mismatch', key, `Map key "${key}" does not match entity id`));
     }
   }
-  const poiIds = new Set<string>();
+  // A point of interest is listed by exactly the settlement it says it is in.
+  const listed = new Map<string, string>();
   for (const s of Object.values(bundle.settlements)) {
-    for (const poi of s.points_of_interest) {
-      if (poiIds.has(poi.id)) issues.push(error('id.duplicate', s.id, `Point of interest id "${poi.id}" is used twice`));
-      poiIds.add(poi.id);
+    for (const id of s.poi_ids) {
+      if (listed.has(id)) issues.push(error('id.duplicate', s.id, `Point of interest "${id}" is listed by ${listed.get(id)} and ${s.id}`));
+      listed.set(id, s.id);
+      if (bundle.pois[id] && bundle.pois[id].settlement_id !== s.id) issues.push(error('symmetry.poi', s.id, `Lists ${id}, which says it is in ${bundle.pois[id].settlement_id}`));
     }
+  }
+  for (const poi of Object.values(bundle.pois)) {
+    if (!listed.has(poi.id)) issues.push(error('symmetry.poi', poi.id, `Not listed by its settlement ${poi.settlement_id}`));
   }
   return issues;
 };
@@ -273,11 +279,12 @@ const checkEmptyFields: Check = (bundle) => {
     require(s.id, [
       ['name', s.name], ['nickname', s.nickname], ['species', s.species], ['languages', s.languages],
       ['leader_title', s.leader_title], ['primary_industries', s.primary_industries], ['districts', s.districts],
-      ['points_of_interest', s.points_of_interest], ['local_customs', s.local_customs], ['key_events', s.key_events],
+      ['poi_ids', s.poi_ids], ['local_customs', s.local_customs], ['key_events', s.key_events],
     ]);
     s.districts.forEach((d, i) => require(s.id, [[`districts[${i}].name`, d.name]]));
-    s.points_of_interest.forEach((poi) => require(s.id, [[`${poi.id}.name`, poi.name]]));
   }
+  for (const poi of Object.values(bundle.pois)) require(poi.id, [['name', poi.name]]);
+  for (const t of Object.values(bundle.treasures)) require(t.id, [['name', t.name]]);
   for (const o of Object.values(bundle.organizations)) {
     require(o.id, [
       ['name', o.name], ['short_name', o.short_name], ['symbol_description', o.symbol_description], ['motto', o.motto],
@@ -295,7 +302,7 @@ const checkEmptyFields: Check = (bundle) => {
 export const CHECKS: Check[] = [
   checkIds, checkRefs, checkShares, checkPlanetStructure, checkCapitals, checkSymmetry, checkOrgSymmetry, checkPopulations,
   checkLeadership, checkOrganizations, checkNpcLinks, checkRumors, checkProse,
-  checkPhysical, checkSettlements, checkHistory, checkLeadershipFit, checkMotives, checkEmptyFields,
+  checkPhysical, checkSettlements, checkHistory, checkLeadershipFit, checkMotives, checkEmptyFields, checkPlaces, checkTreasures,
 ];
 
 /** Run every check. A check that throws on malformed data is reported as an error rather than aborting validation. */

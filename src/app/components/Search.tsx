@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ENTITY_KINDS, entityName, type EntityKind, type PlanetBundle } from '../../generator';
+import { ENTITY_KINDS, type EntityKind, type PlanetBundle } from '../../generator';
 import { useBundle } from '../context';
 import { useKnow } from '../know';
 import { humanize } from '../format';
@@ -24,9 +24,9 @@ function buildIndex(b: PlanetBundle): Entry[] {
   for (const c of Object.values(b.countries)) add(c.id, 'country', c.name, c.government_type, c.demonym);
   for (const s of Object.values(b.settlements)) {
     add(s.id, 'settlement', s.name, s.settlement_type, s.nickname);
-    // Points of interest are not entities; a hit opens their settlement.
-    for (const poi of s.points_of_interest) add(s.id, 'settlement', poi.name, poi.type, `in ${s.name}`);
   }
+  for (const poi of Object.values(b.pois)) add(poi.id, 'poi', poi.name, poi.type, poi.significance, `in ${b.settlements[poi.settlement_id].name}`);
+  for (const t of Object.values(b.treasures)) add(t.id, 'treasure', t.name, t.category, t.rarity, t.visibility);
   for (const o of Object.values(b.organizations)) add(o.id, 'organization', o.name, o.org_type, o.short_name);
   for (const n of Object.values(b.npcs)) add(n.id, 'npc', n.name, n.occupation, n.npc_category, n.title_or_epithet);
   for (const s of Object.values(b.species)) add(s.id, 'species', s.name, s.origin, s.body_plan);
@@ -38,11 +38,11 @@ function buildIndex(b: PlanetBundle): Entry[] {
 /** Filter all entities of the current planet by name or type. */
 export function SearchResults({ query, kind }: { query: string; kind: 'all' | EntityKind }) {
   const { bundle, open, selectedId } = useBundle();
-  const { isKnown, knows } = useKnow();
+  const { isKnown } = useKnow();
   const index = useMemo(() => buildIndex(bundle), [bundle]);
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
-  // In the explorer only known entities are searchable (points of interest once their settlement has been seen).
-  const results = index.filter((e) => isKnown(e.id) && (e.name === entityName(bundle, e.id) || knows(e.id, 'appearance'))
+  // In the explorer only known entities are searchable.
+  const results = index.filter((e) => isKnown(e.id)
     && (kind === 'all' || e.kind === kind) && terms.every((t) => e.text.includes(t)));
   return (
     <div className="search-results">

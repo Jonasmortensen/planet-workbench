@@ -5,7 +5,7 @@ import { canReuseLeader, leadEntry, type SlotRef } from '../rules/leadership';
 import type { Npc, Organization, PlanetBundle, Settlement } from '../types/entities';
 import {
   SOCIAL_RANKS,
-  type GoverningBody, type GovernmentType, type Occupation, type OrgType, type PoiType, type SocialRank,
+  type GoverningBody, type GovernmentType, type Occupation, type SocialRank,
 } from '../types/enums';
 import { PLANET_ID } from '../types/ids';
 import { createNpc, type NpcOptions } from './npcFactory';
@@ -26,23 +26,12 @@ const BODY_OCCUPATION: Record<GoverningBody, Occupation> = {
   collective: 'administrator',
 };
 
-/** Workplaces leaders usually run, by slot kind or organization type. */
-const ORG_POIS: Partial<Record<OrgType, PoiType[]>> = {
-  guild: ['guild_hall', 'workshop'], church: ['temple', 'shrine'], corporation: ['shipyard', 'workshop', 'laboratory'],
-  criminal_syndicate: ['gambling_den', 'black_market', 'tavern'], secret_society: ['library', 'archive', 'crypt'],
-  military_order: ['barracks'], academy: ['library', 'laboratory', 'observatory'], noble_house: ['palace'],
-  cult: ['shrine', 'crypt'], mercenary_company: ['barracks', 'tavern'], trade_consortium: ['market', 'docks'],
-  monastic_order: ['temple', 'shrine'], explorers_society: ['observatory', 'museum'], mutual_aid_society: ['hospital', 'inn'],
-  hacker_collective: ['salvage_yard', 'workshop'], political_party: ['archive', 'theater'],
-};
-
 interface Slot extends SlotRef {
   title: string;
   seat: string;
   rank: SocialRank;
   occupation: Occupation;
   familyName?: string;
-  pois: PoiType[];
   /** An NPC that must take this slot (theocrat leads the state church, and so on). */
   automatic?: () => Npc | null;
 }
@@ -79,7 +68,6 @@ export function generateLeadersStep(bundle: PlanetBundle, rng: Rng): void {
       };
       npc = createNpc(bundle, r, opts);
       leaders.push(npc);
-      claimWorkplace(bundle, r, npc, slot);
     }
     assign(bundle, r, npc, slot);
   }
@@ -107,15 +95,6 @@ function assign(bundle: PlanetBundle, rng: Rng, npc: Npc, slot: Slot): void {
   }
 }
 
-function claimWorkplace(bundle: PlanetBundle, rng: Rng, npc: Npc, slot: Slot): void {
-  const s = bundle.settlements[npc.settlement_id];
-  const free = s.points_of_interest.filter((p) => !p.owner_npc_id && slot.pois.includes(p.type));
-  if (free.length === 0 || !rng.chance(0.75)) return;
-  const poi = rng.pick(free);
-  poi.owner_npc_id = npc.id;
-  npc.workplace_poi_id = poi.id;
-}
-
 function buildSlots(bundle: PlanetBundle, rng: Rng): Slot[] {
   const p = bundle.planet;
   const slots: Slot[] = [];
@@ -135,7 +114,7 @@ function buildSlots(bundle: PlanetBundle, rng: Rng): Slot[] {
     const seatCountry = bundle.countries[seat.country_id];
     slots.push({
       kind: 'world_government', entityId: PLANET_ID, title: p.world_government.leader_title, seat: seat.id,
-      rank: 'sovereign', pois: ['palace', 'embassy'],
+      rank: 'sovereign',
       occupation: p.political_structure === 'federation' ? 'diplomat' : RULER_OCCUPATION[seatCountry.government_type] ?? 'administrator',
       familyName: p.political_structure === 'unified' ? houseFamily(royalHouse(seatCountry.id)) : undefined,
     });
@@ -145,7 +124,7 @@ function buildSlots(bundle: PlanetBundle, rng: Rng): Slot[] {
   for (const c of countries) {
     slots.push({
       kind: 'country', entityId: c.id, title: c.ruler_title, seat: c.capital_settlement_id!, rank: 'sovereign',
-      occupation: RULER_OCCUPATION[c.government_type] ?? 'administrator', pois: ['palace'],
+      occupation: RULER_OCCUPATION[c.government_type] ?? 'administrator',
       familyName: houseFamily(royalHouse(c.id)),
       automatic: p.political_structure === 'unified' && p.world_government
         ? () => (p.world_government!.leader_npc_id ? bundle.npcs[p.world_government!.leader_npc_id] : null)
@@ -157,7 +136,7 @@ function buildSlots(bundle: PlanetBundle, rng: Rng): Slot[] {
   for (const s of Object.values(bundle.settlements)) {
     slots.push({
       kind: 'settlement', entityId: s.id, title: s.leader_title, seat: s.id, rank: settlementRank(s),
-      occupation: BODY_OCCUPATION[s.governing_body], pois: ['palace', 'archive', 'guild_hall', 'temple', 'barracks'],
+      occupation: BODY_OCCUPATION[s.governing_body],
     });
   }
 
@@ -178,7 +157,6 @@ function buildSlots(bundle: PlanetBundle, rng: Rng): Slot[] {
       kind: 'organization', entityId: o.id, title: o.leader_title, seat, rank,
       occupation: r.weighted(Object.entries(def.occupations).map(([k, w]) => ({ value: k as Occupation, weight: w ?? 0 }))),
       familyName: o.org_type === 'noble_house' ? houseFamily(o) : undefined,
-      pois: ORG_POIS[o.org_type] ?? [],
       automatic,
     });
   }

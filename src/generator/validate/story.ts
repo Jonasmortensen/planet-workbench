@@ -39,7 +39,8 @@ export const checkMotives: Check = (bundle) => {
   return issues;
 };
 
-const ARTIFACT = /[{}<>[\]]|undefined|null|NaN|\s{2}|\s[,.]/;
+// Whole words only: generated names can contain "null" ("Vuthnullio").
+const ARTIFACT = /[{}<>[\]]|\b(?:undefined|null|NaN)\b|\s{2}|\s[,.]/;
 
 /** Prose: every rendered field is filled and free of template artifacts. */
 export const checkProse: Check = (bundle) => {
@@ -56,8 +57,9 @@ export const checkProse: Check = (bundle) => {
     check(s.id, 'tagline', s.tagline);
     check(s.id, 'description', s.description);
     s.districts.forEach((d, i) => check(s.id, `districts[${i}].description`, d.description));
-    s.points_of_interest.forEach((poi) => check(s.id, `${poi.id}.description`, poi.description));
   }
+  for (const poi of Object.values(bundle.pois)) check(poi.id, 'description', poi.description);
+  for (const t of Object.values(bundle.treasures)) check(t.id, 'description', t.description);
   for (const o of Object.values(bundle.organizations)) { check(o.id, 'tagline', o.tagline); check(o.id, 'description', o.description); }
   for (const n of Object.values(bundle.npcs)) {
     check(n.id, 'tagline', n.tagline);

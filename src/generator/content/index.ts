@@ -14,6 +14,8 @@ export * from './religion';
 export * from './government';
 export * from './culture';
 export * from './settlement';
+export * from './places';
+export * from './treasures';
 export * from './organizations';
 export * from './npc';
 export * from './events';
