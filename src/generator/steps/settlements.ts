@@ -284,6 +284,7 @@ function buildSettlement(
     garrison_strength: garrison,
     districts,
     poi_ids: [],
+    nearby_poi_ids: [],
     mood,
     aesthetic,
     local_customs: customs,

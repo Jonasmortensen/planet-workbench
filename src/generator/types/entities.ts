@@ -337,7 +337,13 @@ export interface District {
 export interface PointOfInterest {
   id: PoiId;
   seed: string;
-  settlement_id: SettlementId;
+  /** The settlement it stands in; null for an abandoned or forgotten place out in the wilds. */
+  settlement_id: SettlementId | null;
+  /** Outside settlements: the nearest settlement, where the way there starts. Null inside settlements. */
+  near_settlement_id: SettlementId | null;
+  /** Outside settlements: normalized planet-surface coordinates. Null inside settlements. */
+  position: { x: number; y: number } | null;
+  status: E.PoiStatus;
   name: string;
   type: E.PoiType;
   significance: E.PoiSignificance;
@@ -410,6 +416,8 @@ export interface Settlement {
   districts: District[];
   /** Filled by the places step. */
   poi_ids: PoiId[];
+  /** Abandoned or forgotten places outside the settlement for which it is the nearest. Filled by the places step. */
+  nearby_poi_ids: PoiId[];
 
   mood: E.Mood;
   aesthetic: E.Aesthetic;

@@ -62,6 +62,7 @@ export function collectRefs(bundle: PlanetBundle): RefSite[] {
     s.religions_or_ideologies.forEach((r) => add(s.id, 'religions_or_ideologies', r.religion_id, 'religion'));
     add(s.id, 'leader_npc_id', s.leader_npc_id, 'npc');
     s.poi_ids.forEach((id) => add(s.id, 'poi_ids', id, 'poi'));
+    s.nearby_poi_ids.forEach((id) => add(s.id, 'nearby_poi_ids', id, 'poi'));
     s.current_events.forEach((e) => e.involved_refs.forEach((r) => add(s.id, `current_events (${e.type})`, r)));
     s.organizations_present.forEach((o) => add(s.id, 'organizations_present', o, 'organization'));
     events(s.id, 'key_events', s.key_events);
@@ -112,6 +113,7 @@ export function collectRefs(bundle: PlanetBundle): RefSite[] {
 
   for (const poi of Object.values(bundle.pois)) {
     add(poi.id, 'settlement_id', poi.settlement_id, 'settlement');
+    add(poi.id, 'near_settlement_id', poi.near_settlement_id, 'settlement');
     add(poi.id, 'owner_npc_id', poi.owner_npc_id, 'npc');
     add(poi.id, 'organization_id', poi.organization_id, 'organization');
   }

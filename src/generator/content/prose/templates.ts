@@ -202,6 +202,13 @@ export const POI_DESCRIPTIONS: Template[] = [
   { text: '{flavor} {name|cap} is {poi|a}[ belonging to {owner}]: {significance}.' },
 ];
 
+/** Places out in the wilds: {status} is "abandoned" or "forgotten", {near} the nearest settlement. */
+export const WILD_DESCRIPTIONS: Template[] = [
+  { text: '{name|cap} is {status|a} {poi} in the wilds near {near}, and {significance}. {flavor}' },
+  { text: 'Out beyond {near} lies {name}, {status|a} {poi}: {significance}. {flavor}' },
+  { text: '{flavor} {name|cap} is {status|a} {poi} near {near}, {significance}.' },
+];
+
 /** Homes: {owner} is the head of the household. */
 export const HOME_DESCRIPTIONS: Template[] = [
   { text: '{name|cap} is {poi|a} in {settlement}, home to {residents}. {flavor}' },
@@ -211,7 +218,7 @@ export const HOME_DESCRIPTIONS: Template[] = [
 /** Treasures. {where} is "kept at X in Y" or "carried by X"; {detail} explains a fact-based treasure. */
 export const TREASURE_DESCRIPTIONS: Template[] = [
   { text: '{name|cap} is {rarity|a} {noun}, {where}.[ {detail}][ It is guarded by {guards}.] {visibility}', when: { embodied: ['no'] } },
-  { text: 'A {rarity} {noun}, {where}.[ {detail}][ {guards|cap} keep watch over it.] {visibility}', when: { embodied: ['no'] } },
+  { text: '{rarity|a|cap} {noun}, {where}.[ {detail}][ {guards|cap} keep watch over it.] {visibility}', when: { embodied: ['no'] } },
   { text: '{name|cap} is not something to steal: it is {holder}’s own {gift}, {rarity|a} {noun}.[ {detail}] {visibility}', when: { embodied: ['yes'] } },
 ];
 

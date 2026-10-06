@@ -12,8 +12,8 @@ import {
 } from '../rules/places';
 import type { Npc, Organization, PlanetBundle, PointOfInterest, Settlement, Treasure, TreasureHolder } from '../types/entities';
 import {
-  AGE_CATEGORIES, POI_SIGNIFICANCES, SOCIAL_RANKS, TREASURE_CATEGORIES, TREASURE_RARITIES, VISIBILITY_LEVELS, WEALTH_LEVELS,
-  type LocationReason, type Occupation, type PoiType, type TreasureCategory, type TreasureRarity, type Visibility,
+  AGE_CATEGORIES, POI_SIGNIFICANCES, POI_TYPES, SOCIAL_RANKS, TREASURE_CATEGORIES, TREASURE_RARITIES, VISIBILITY_LEVELS, WEALTH_LEVELS,
+  type LocationReason, type Occupation, type PoiStatus, type PoiType, type TreasureCategory, type TreasureRarity, type Visibility,
 } from '../types/enums';
 import { PLANET_ID, entityName, kindOf } from '../types/ids';
 import { words } from '../render/words';
@@ -28,7 +28,10 @@ import { bundleContext } from './context';
  *    home, sometimes somewhere surprising that their data explains.
  * 2. Points of interest are created to hold them (or shared); none is empty.
  * 3. Significance follows from the place type, the settlement and who is there.
- * 4. Every place gets 1 to 5 treasures; some powerful NPCs carry one or are one.
+ * 4. Abandoned and forgotten places lie in the wilds around settlements. Nobody is
+ *    there, but they hold treasures of their own, and maps lead to them.
+ * 5. Every place gets 1 to 5 treasures; some powerful NPCs carry one or are one.
+ *    Maps always lead to a real place.
  */
 export function generatePlacesStep(bundle: PlanetBundle, rng: Rng): void {
   const ids = { poi: 0, treasure: 0 };
@@ -36,6 +39,8 @@ export function generatePlacesStep(bundle: PlanetBundle, rng: Rng): void {
   for (const s of Object.values(bundle.settlements)) placeNpcs(bundle, rng.fork(`npcs:${s.id}`), s, bySettlement.get(s.id) ?? [], ids);
   const byPoi = groupBy(Object.values(bundle.npcs), (n) => n.location_poi_id);
   for (const poi of Object.values(bundle.pois)) poi.significance = significanceOf(bundle, poi, byPoi.get(poi.id) ?? []);
+  const wildNames = new Set<string>();
+  for (const s of Object.values(bundle.settlements)) placeWilds(bundle, rng.fork(`wilds:${s.id}`), s, ids, wildNames);
 
   const t = new TreasureMaker(bundle, ids, byPoi, bySettlement);
   for (const poi of Object.values(bundle.pois)) t.forPoi(rng.fork(`treasures:${poi.id}`), poi);
@@ -83,6 +88,9 @@ const GUARDS: Occupation[] = ['guard', 'soldier', 'mercenary', 'bounty_hunter', 
 /** One of these per settlement is enough. */
 const SINGLE: PoiType[] = ['city_hall', 'palace', 'prison', 'spaceport', 'courthouse', 'college', 'citadel', 'embassy', 'docks'];
 
+/** Places in a settlement with hidden depths a map can show the way into. */
+const HIDDEN_DEPTHS: PoiType[] = ['crypt', 'ruin', 'mine', 'hideout'];
+
 const isPublic = (o: Organization) => o.visibility !== 'secret' && o.legality !== 'outlawed';
 const motiveTarget = (n: Npc) => {
   const m = n.secret;
@@ -94,7 +102,7 @@ function placeNpcs(b: PlanetBundle, r: Rng, s: Settlement, locals: Npc[], ids: {
   const size = SETTLEMENT_TYPE_TABLE[s.settlement_type].size;
   const country = b.countries[s.country_id];
   const ctx = bundleContext(b, { techLevel: country.tech_level, biomes: [s.biome] });
-  const allowed = (t: PoiType) => POI_TABLE[t].minSize <= size && eligible([t], POI_TABLE, ctx).length > 0;
+  const allowed = (t: PoiType) => !POI_TABLE[t].wildOnly && POI_TABLE[t].minSize <= size && eligible([t], POI_TABLE, ctx).length > 0;
   const fit = (types: PoiType[]) => types.filter(allowed);
   const localIds = new Set(locals.map((n) => n.id));
   const orgsHere = new Set(s.organizations_present);
@@ -224,7 +232,7 @@ function placeNpcs(b: PlanetBundle, r: Rng, s: Settlement, locals: Npc[], ids: {
   // signature trade is found there, at work. Signature places ignore the size minimum.
   const signatureTypes = (Object.entries(SETTLEMENT_TYPE_WORK[s.settlement_type].pois) as [PoiType, number][])
     .sort((a, b) => b[1] - a[1]).map(([t]) => t)
-    .filter((t) => eligible([t], POI_TABLE, ctx).length > 0 && !POI_TABLE[t].residence);
+    .filter((t) => eligible([t], POI_TABLE, ctx).length > 0 && !POI_TABLE[t].residence && !POI_TABLE[t].wildOnly);
   const flavorOf = (n: Npc) => [SETTLEMENT_TYPE_WORK[s.settlement_type], ...s.primary_industries.map((i) => INDUSTRY_WORK[i])]
     .reduce((a, f) => a + (f.occupations[n.occupation] ?? 0), 0);
   const signatureWorker = locals.find((n) => n.npc_category === 'notable' && flavorOf(n) > 0);
@@ -294,7 +302,7 @@ function placeNpcs(b: PlanetBundle, r: Rng, s: Settlement, locals: Npc[], ids: {
     usedNames.add(name);
     const id = `poi_${ids.poi++}`;
     const poi: PointOfInterest = {
-      id, seed: pr.childSeed(id), settlement_id: s.id, name, type, significance: 'minor',
+      id, seed: pr.childSeed(id), settlement_id: s.id, near_settlement_id: null, position: null, status: 'in_use', name, type, significance: 'minor',
       owner_npc_id: intent.owner ?? null, organization_id: intent.org ?? null, description: '',
     };
     b.pois[id] = poi;
@@ -385,9 +393,50 @@ function householdsOf(b: PlanetBundle, locals: Npc[]): Map<string, Npc> {
   return out;
 }
 
+// ---------------------------------------------------------------------------
+// Places outside settlements
+
+/** Abandoned and forgotten places in the wilds around a settlement. Nobody is there; maps lead to them. */
+function placeWilds(b: PlanetBundle, r: Rng, s: Settlement, ids: { poi: number }, names: Set<string>): void {
+  const cfg = CONFIG.places.wild;
+  const ruinous = s.settlement_type === 'ruin_town' || s.primary_industries.includes('relic_hunting')
+    || s.districts.some((d) => d.type === 'ruins' || d.type === 'necropolis');
+  const expected = cfg.base + (ruinous ? cfg.ruinBoost : 0) + (b.planet.precursor_presence !== 'none' ? cfg.precursorBoost : 0);
+  const count = Math.floor(expected) + (r.chance(expected % 1) ? 1 : 0);
+  if (count === 0) return;
+  const options = eligible(POI_TYPES.filter((t) => POI_TABLE[t].wild), POI_TABLE, bundleContext(b, { biomes: [s.biome] }), (_t, d) => d.wild!.weight);
+  if (options.length === 0) return;
+  const ph = b.languages[s.languages[0]].phonology;
+  const clamp = (v: number) => Math.round(Math.min(1, Math.max(0, v)) * 1000) / 1000;
+  for (let i = 0; i < count; i++) {
+    const wr = r.fork(`wild:${i}`);
+    const type = wr.weighted(options);
+    const def = POI_TABLE[type];
+    const status: PoiStatus = wr.chance(def.wild!.forgotten) ? 'forgotten' : 'abandoned';
+    let name = '';
+    for (let j = 0; j < 6 && (!name || names.has(name)); j++) {
+      const nr = wr.fork(`name:${j}`);
+      name = fillPattern(pickPattern(nr, def.wild!.namePatterns ?? def.namePatterns), {
+        adjective: () => nr.pick(ADJECTIVES), noun: () => nr.pick(NOUNS), noun2: () => nr.pick(NOUNS), root: () => makeBareName(ph, nr, 2),
+      });
+    }
+    names.add(name);
+    const angle = wr.next() * Math.PI * 2;
+    const distance = cfg.distance[0] + wr.next() * (cfg.distance[1] - cfg.distance[0]);
+    const id = `poi_${ids.poi++}`;
+    b.pois[id] = {
+      id, seed: wr.childSeed(id), settlement_id: null, near_settlement_id: s.id,
+      position: { x: clamp(s.position.x + Math.cos(angle) * distance), y: clamp(s.position.y + Math.sin(angle) * distance) },
+      status, name, type, significance: POI_SIGNIFICANCES[Math.min(3, def.significance + (wr.chance(cfg.greater) ? 1 : 0))],
+      owner_npc_id: null, organization_id: null, description: '',
+    };
+    s.nearby_poi_ids.push(id);
+  }
+}
+
 /** Significance from the place type, the settlement's size and the importance of who is there. */
 function significanceOf(b: PlanetBundle, poi: PointOfInterest, present: Npc[]): (typeof POI_SIGNIFICANCES)[number] {
-  const s = b.settlements[poi.settlement_id];
+  const s = b.settlements[poi.settlement_id!];
   const size = SETTLEMENT_TYPE_TABLE[s.settlement_type].size;
   let sig = POI_TABLE[poi.type].significance;
   // Capitals make their great places greater; hamlets make everything humbler.
@@ -430,7 +479,17 @@ class TreasureMaker {
     private ids: { treasure: number },
     private byPoi: Map<string, Npc[]>,
     private bySettlement: Map<string, Npc[]>,
-  ) {}
+  ) {
+    this.mapTargets = Object.values(b.pois).filter((p) => !p.settlement_id || HIDDEN_DEPTHS.includes(p.type));
+  }
+
+  /** The settlement a place is in, or near. */
+  private home(poi: PointOfInterest): Settlement {
+    return this.b.settlements[(poi.settlement_id ?? poi.near_settlement_id)!];
+  }
+
+  /** Places a map can lead to: anywhere in the wilds, or the hidden depths of a settlement. */
+  private mapTargets: PointOfInterest[];
 
   forPoi(r: Rng, poi: PointOfInterest): void {
     const [lo, hi] = TREASURES_BY_SIGNIFICANCE[poi.significance];
@@ -439,8 +498,10 @@ class TreasureMaker {
     for (let i = 0; i < count; i++) {
       const tr = r.fork(`t:${i}`);
       const weights: Partial<Record<TreasureCategory, number>> = { ...POI_TABLE[poi.type].treasures };
+      // Out in the wilds nobody is left to hold secrets, keys or evidence: only what was left behind.
+      if (!poi.settlement_id) for (const c of ['intel', 'leverage', 'access'] as const) delete weights[c];
       // Secrets of the people here make the best leverage; a secret organization's seat holds intel.
-      if (this.leverageOptions(poi).some((o) => o.weight >= 4)) weights.leverage = (weights.leverage ?? 0) + 1.5;
+      else if (this.leverageOptions(poi).some((o) => o.weight >= 4)) weights.leverage = (weights.leverage ?? 0) + 1.5;
       const org = poi.organization_id ? this.b.organizations[poi.organization_id] : null;
       if (org && !isPublic(org)) weights.intel = (weights.intel ?? 0) + 3;
       for (const [c, k] of counts) weights[c] = (weights[c] ?? 0) / (1 + k * 2);
@@ -530,8 +591,10 @@ class TreasureMaker {
     const rarity = r.weighted<TreasureRarity>(TREASURE_RARITIES.map((x, i) => ({ value: x, weight: [6, 3 + sigBoost * 0.5, 0.3 + sigBoost * 0.6][i] })));
     const org = poi.organization_id ? this.b.organizations[poi.organization_id] : null;
     const vis = TREASURE_TABLE[d.category].visibility;
+    // Nothing at a secret seat or a forgotten place is common knowledge.
+    const hidden = (org && !isPublic(org)) || poi.status === 'forgotten';
     const visibility = d.visibility ?? r.weighted(VISIBILITY_LEVELS.map((v) => ({
-      value: v, weight: (vis[v] ?? 0) * (v === 'public' && org && !isPublic(org) ? 0 : 1),
+      value: v, weight: (vis[v] ?? 0) * (v === 'public' && hidden ? 0 : 1),
     })).filter((e) => e.weight > 0).concat([{ value: 'secret' as Visibility, weight: 0.01 }]));
     const id = `treasure_${this.ids.treasure++}`;
     const t: Treasure = {
@@ -544,7 +607,7 @@ class TreasureMaker {
   /** A treasure of a category, or null if the world offers nothing for it here. */
   private draft(r: Rng, c: TreasureCategory, poi: PointOfInterest): Draft | null {
     const b = this.b;
-    const s = b.settlements[poi.settlement_id];
+    const s = this.home(poi);
     const subject = (pattern: NamePattern[], id: string, extra: Record<string, string> = {}) => fillPattern(pickPattern(r, pattern), {
       subject: () => entityName(b, id), epithet: () => r.pick(TREASURE_EPITHETS), ...Object.fromEntries(Object.entries(extra).map(([k, v]) => [k, () => v])),
     });
@@ -588,16 +651,13 @@ class TreasureMaker {
         return o ? { category: c, name: subject(ACCESS_NAMES[o.kind], o.id), subjects: [o.id], fact: o.fact } : null;
       }
       case 'map': {
-        const opts: { id: string; kind: keyof typeof MAP_NAMES; feature?: string; weight: number; fact: string }[] = [];
-        b.planet.notable_features.forEach((f, i) => opts.push({ id: PLANET_ID, kind: 'feature', feature: f.name, weight: 1.5, fact: `map:feature:${i}` }));
-        for (const p of Object.values(b.pois).filter((x) => x.type === 'ruin' || x.type === 'crypt' || x.type === 'mine')) {
-          opts.push({ id: p.id, kind: 'poi', weight: p.settlement_id === s.id ? 1 : 2, fact: `map:${p.id}` });
-        }
-        for (const x of Object.values(b.settlements).filter((x) => x.settlement_type === 'ruin_town' || x.districts.some((d) => d.type === 'undercity' || d.type === 'ruins'))) {
-          opts.push({ id: x.id, kind: 'settlement', weight: 1, fact: `map:${x.id}` });
-        }
+        // A map leads to a real place: mostly the forgotten places of the wilds, best those nearby.
+        const opts = this.mapTargets.filter((p) => p.id !== poi.id).map((p) => ({
+          id: p.id, wild: !p.settlement_id, fact: `map:${p.id}`,
+          weight: p.settlement_id ? 0.5 : (p.status === 'forgotten' ? 3 : 1.5) * (p.near_settlement_id === s.id ? 2 : 1),
+        }));
         const o = pickFact(opts);
-        return o ? { category: c, name: subject(MAP_NAMES[o.kind], o.id, { feature: o.feature ?? '' }), subjects: [o.id], fact: o.fact } : null;
+        return o ? { category: c, name: subject(MAP_NAMES[o.wild ? 'wild' : 'hidden'], o.id), subjects: [o.id], fact: o.fact } : null;
       }
       default:
         return this.physical(r, c, poi);
@@ -608,7 +668,7 @@ class TreasureMaker {
   private leverageOptions(poi: PointOfInterest, minWeight = 0): { draft: Draft; weight: number }[] {
     const b = this.b;
     const out: { draft: Draft; weight: number }[] = [];
-    for (const n of this.bySettlement.get(poi.settlement_id) ?? []) {
+    for (const n of (poi.settlement_id && this.bySettlement.get(poi.settlement_id)) || []) {
       if (!n.secret || this.used.has(`secret:${n.id}`)) continue;
       const weight = n.location_poi_id === poi.id || poi.owner_npc_id === n.id ? 4
         : poi.organization_id && n.organization_ids.includes(poi.organization_id) ? 2 : 0.5;
@@ -631,9 +691,10 @@ class TreasureMaker {
 
   private physical(r: Rng, c: TreasureCategory, poi: PointOfInterest): Draft {
     const b = this.b;
-    const s = b.settlements[poi.settlement_id];
+    const s = this.home(poi);
     const tech = b.countries[s.country_id].tech_level;
-    const band = tech <= 3 ? 0 : tech <= 6 ? 1 : 2;
+    // Whatever the precursors left behind is beyond anyone living.
+    const band = poi.type === 'precursor_site' || tech > 6 ? 2 : tech > 3 ? 1 : 0;
     const ph = b.languages[s.languages[0]].phonology;
     const owner = poi.owner_npc_id ? b.npcs[poi.owner_npc_id] : null;
     const religion = s.religions_or_ideologies[0]?.religion_id ?? null;

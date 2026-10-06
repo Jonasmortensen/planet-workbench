@@ -62,6 +62,7 @@ export function BatchPage() {
             <StatTile label="Treasures per place" value={stats.treasuresPerPoi.toFixed(2)} detail={`${stats.avgPois.toFixed(0)} places · ${stats.avgTreasures.toFixed(0)} treasures per planet`} />
             <StatTile label="Surprising locations" value={pct(stats.surprisingShare)} detail="NPCs not at work or home (target 20–30%)" />
             <StatTile label="NPCs with treasure" value={pct(stats.carryingShare)} detail="carry or are a treasure (target 10–20%)" />
+            <StatTile label="Places in the wilds" value={stats.avgWildPois.toFixed(1)} detail={`per planet · ${pct(stats.forgottenShare)} forgotten · ${pct(stats.forgottenMappedShare)} of those mapped`} />
           </div>
 
           <div className="chart-grid">

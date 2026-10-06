@@ -1,4 +1,4 @@
-import type { PlanetBundle, Rumor } from '../generator';
+import type { PlanetBundle, Rumor, Treasure } from '../generator';
 import { PLANET_ID, kindOf } from '../generator';
 import { FACT_GROUPS, groupsSeen } from './facts';
 import { poiInPlainSight } from './npcKnowledge';
@@ -70,6 +70,13 @@ export function learn(k: Knowledge, facts: readonly FactRef[]): { knowledge: Kno
 
 const facts = (entity: string, groups: string[]): FactRef[] => groups.map((group) => ({ entity, group }));
 
+/** A treasure seen in full. A map also reveals the place it leads to, unless that place is a hideout or a secret seat. */
+function treasureFacts(b: PlanetBundle, t: Treasure): FactRef[] {
+  const target = t.category === 'map' ? b.pois[t.subject_refs[0]] : undefined;
+  const reveal = target && (!target.settlement_id || poiInPlainSight(b, target.id));
+  return [...facts(t.id, ['name', 'details']), ...(reveal ? facts(target.id, ['name', 'details']) : [])];
+}
+
 /** Fresh knowledge on arriving at a planet: whatever can be seen from orbit. */
 export function createKnowledge(b: PlanetBundle): Knowledge {
   const base: Knowledge = {
@@ -90,7 +97,7 @@ export function visibleOnArrival(b: PlanetBundle, settlementId: string): FactRef
     ...places.flatMap((p) => facts(p.id, groupsSeen('poi', 'arrival'))),
     ...Object.values(b.treasures)
       .filter((t) => t.visibility === 'public' && 'poi_id' in t.holder && places.some((p) => 'poi_id' in t.holder && p.id === t.holder.poi_id))
-      .flatMap((t) => facts(t.id, ['name', 'details'])),
+      .flatMap((t) => treasureFacts(b, t)),
   ];
 }
 
@@ -112,7 +119,7 @@ export function visibleOnMeeting(b: PlanetBundle, npcId: string): FactRef[] {
     // Treasures they openly carry or are.
     ...Object.values(b.treasures)
       .filter((t) => t.visibility === 'public' && 'npc_id' in t.holder && t.holder.npc_id === npcId)
-      .flatMap((t) => facts(t.id, ['name', 'details'])),
+      .flatMap((t) => treasureFacts(b, t)),
   ];
 }
 

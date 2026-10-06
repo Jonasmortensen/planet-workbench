@@ -16,6 +16,7 @@ export function SettlementPage({ settlement: s }: { settlement: Settlement }) {
   const country = bundle.countries[s.country_id];
   const pois = s.poi_ids.map((id) => bundle.pois[id]).filter((p) => isKnown(p.id))
     .sort((a, b) => POI_SIGNIFICANCES.indexOf(b.significance) - POI_SIGNIFICANCES.indexOf(a.significance));
+  const nearby = s.nearby_poi_ids.map((id) => bundle.pois[id]).filter((p) => isKnown(p.id));
   // Treasures kept at this settlement's places or carried by its people; in the explorer, only known ones.
   const treasures = Object.values(bundle.treasures).filter((t) => isKnown(t.id) && ('poi_id' in t.holder
     ? bundle.pois[t.holder.poi_id]?.settlement_id === s.id
@@ -104,6 +105,20 @@ export function SettlementPage({ settlement: s }: { settlement: Settlement }) {
               treasuresAt(bundle, poi.id).filter((t) => isKnown(t.id)).length,
             ])}
           />
+        </Section>
+
+        <Section title={`Places nearby (${nearby.length})`} wide>
+          {nearby.length > 0
+            ? (
+              <Table
+                head={['Name', 'Type', 'Status', 'Significance', 'Treasures']}
+                rows={nearby.map((poi) => [
+                  <Ref id={poi.id} />, <Enum value={poi.type} />, <Enum value={poi.status} />, <Enum value={poi.significance} />,
+                  treasuresAt(bundle, poi.id).filter((t) => isKnown(t.id)).length,
+                ])}
+              />
+            )
+            : <span className="muted">{explore ? 'You know of no abandoned places nearby.' : 'none'}</span>}
         </Section>
 
         <Section title={`Treasures (${treasures.length})`} wide foldable>

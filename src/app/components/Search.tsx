@@ -25,7 +25,10 @@ function buildIndex(b: PlanetBundle): Entry[] {
   for (const s of Object.values(b.settlements)) {
     add(s.id, 'settlement', s.name, s.settlement_type, s.nickname);
   }
-  for (const poi of Object.values(b.pois)) add(poi.id, 'poi', poi.name, poi.type, poi.significance, `in ${b.settlements[poi.settlement_id].name}`);
+  for (const poi of Object.values(b.pois)) {
+    const where = poi.settlement_id ? `in ${b.settlements[poi.settlement_id].name}` : `${poi.status} near ${b.settlements[poi.near_settlement_id!].name}`;
+    add(poi.id, 'poi', poi.name, poi.type, poi.significance, where);
+  }
   for (const t of Object.values(b.treasures)) add(t.id, 'treasure', t.name, t.category, t.rarity, t.visibility);
   for (const o of Object.values(b.organizations)) add(o.id, 'organization', o.name, o.org_type, o.short_name);
   for (const n of Object.values(b.npcs)) add(n.id, 'npc', n.name, n.occupation, n.npc_category, n.title_or_epithet);

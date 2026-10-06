@@ -35,6 +35,10 @@ export interface PlanetSummary {
   /** Number of points of interest holding N treasures of their own, keyed by N. */
   treasures_per_poi: Record<string, number>;
   poi_significances: Record<string, number>;
+  /** Places outside settlements, how many are forgotten, and how many of those a map leads to. */
+  wild_pois: number;
+  forgotten_pois: number;
+  forgotten_mapped: number;
   location_reasons: Record<string, number>;
   surprising_npcs: number;
   npcs_carrying: number;
@@ -68,6 +72,9 @@ export function summarize(b: PlanetBundle, ms: number): PlanetSummary {
   const own = new Map<string, number>(Object.keys(b.pois).map((id) => [id, 0]));
   for (const t of treasures) if ('poi_id' in t.holder) own.set(t.holder.poi_id, (own.get(t.holder.poi_id) ?? 0) + 1);
   const carriers = new Set(treasures.flatMap((t) => ('npc_id' in t.holder ? [t.holder.npc_id] : [])));
+  const wild = Object.values(b.pois).filter((p) => !p.settlement_id);
+  const mapped = new Set(treasures.filter((t) => t.category === 'map').map((t) => t.subject_refs[0]));
+  const forgotten = wild.filter((p) => p.status === 'forgotten');
   const codes: Record<string, number> = {};
   for (const v of b.validation) codes[`${v.severity}:${v.code}`] = (codes[`${v.severity}:${v.code}`] ?? 0) + 1;
   return {
@@ -100,6 +107,9 @@ export function summarize(b: PlanetBundle, ms: number): PlanetSummary {
     treasure_rarities: countBy(treasures.map((t) => t.rarity)),
     treasures_per_poi: countBy([...own.values()].map(String)),
     poi_significances: countBy(Object.values(b.pois).map((p) => p.significance)),
+    wild_pois: wild.length,
+    forgotten_pois: forgotten.length,
+    forgotten_mapped: forgotten.filter((p) => mapped.has(p.id)).length,
     location_reasons: countBy(npcs.map((n) => n.location_reason)),
     surprising_npcs: npcs.filter((n) => isSurprising(n.location_reason)).length,
     npcs_carrying: carriers.size,
@@ -170,6 +180,9 @@ export interface BatchStats {
   treasuresPerPoi: number;
   surprisingShare: number;
   carryingShare: number;
+  avgWildPois: number;
+  forgottenShare: number;
+  forgottenMappedShare: number;
   treasureCategories: Distribution;
   treasureRarities: Distribution;
   treasuresPerPoiDist: Distribution;
@@ -210,6 +223,9 @@ export function aggregate(rows: PlanetSummary[]): BatchStats {
     treasuresPerPoi: sum((r) => Object.entries(r.treasures_per_poi).reduce((a, [k, v]) => a + Number(k) * v, 0)) / Math.max(1, sum((r) => r.poi_count)),
     surprisingShare: sum((r) => r.surprising_npcs) / Math.max(1, sum((r) => r.npc_count)),
     carryingShare: sum((r) => r.npcs_carrying) / Math.max(1, sum((r) => r.npc_count)),
+    avgWildPois: avg(rows.map((r) => r.wild_pois)),
+    forgottenShare: sum((r) => r.forgotten_pois) / Math.max(1, sum((r) => r.wild_pois)),
+    forgottenMappedShare: sum((r) => r.forgotten_mapped) / Math.max(1, sum((r) => r.forgotten_pois)),
     treasureCategories: merged(rows.map((r) => r.treasure_categories)),
     treasureRarities: merged(rows.map((r) => r.treasure_rarities), TREASURE_RARITIES),
     treasuresPerPoiDist: merged(rows.map((r) => r.treasures_per_poi)).sort((a, b) => Number(a.key) - Number(b.key)),

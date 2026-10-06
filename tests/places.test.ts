@@ -8,7 +8,7 @@ const SEEDS = Array.from({ length: 40 }, (_, i) => String(i));
 const bundles = SEEDS.map((s) => generatePlanet(s));
 
 describe('places', () => {
-  it('puts every NPC somewhere in their home settlement, and someone in every place', () => {
+  it('puts every NPC somewhere in their home settlement, and someone in every place in a settlement', () => {
     for (const b of bundles) {
       for (const n of Object.values(b.npcs)) {
         const poi = b.pois[n.location_poi_id];
@@ -16,9 +16,10 @@ describe('places', () => {
         expect(poi.settlement_id).toBe(n.settlement_id);
         if (n.workplace_poi_id) expect(b.pois[n.workplace_poi_id].settlement_id).toBe(n.settlement_id);
       }
-      for (const poi of Object.values(b.pois)) {
+      for (const poi of Object.values(b.pois).filter((p) => p.settlement_id)) {
         expect(npcsAt(b, poi.id).length, `${b.seed} ${poi.id}`).toBeGreaterThan(0);
-        expect(b.settlements[poi.settlement_id].poi_ids).toContain(poi.id);
+        expect(b.settlements[poi.settlement_id!].poi_ids).toContain(poi.id);
+        expect(poi.status).toBe('in_use');
       }
     }
   });
@@ -44,6 +45,42 @@ describe('places', () => {
         expect(n.location_public).toBe(false);
       }
     }
+  });
+});
+
+describe('places in the wilds', () => {
+  const wild = bundles.flatMap((b) => Object.values(b.pois).filter((p) => !p.settlement_id).map((p) => ({ b, p })));
+
+  it('exist, abandoned or forgotten, near a settlement that lists them', () => {
+    expect(wild.length / bundles.length).toBeGreaterThan(5);
+    for (const { b, p } of wild) {
+      expect(['abandoned', 'forgotten']).toContain(p.status);
+      expect(b.settlements[p.near_settlement_id!].nearby_poi_ids).toContain(p.id);
+      expect(p.position).not.toBeNull();
+      expect(p.owner_npc_id).toBeNull();
+    }
+  });
+
+  it('are empty of people but hold treasures of their own', () => {
+    for (const { b, p } of wild) {
+      expect(npcsAt(b, p.id), `${b.seed} ${p.id}`).toEqual([]);
+      expect(treasuresAt(b, p.id).length).toBeGreaterThan(0);
+      for (const t of treasuresAt(b, p.id)) expect(['intel', 'leverage', 'access']).not.toContain(t.category);
+    }
+  });
+
+  it('are what maps lead to: every map leads to a real place, most forgotten places have a map', () => {
+    const maps = bundles.flatMap((b) => Object.values(b.treasures).filter((t) => t.category === 'map').map((t) => ({ b, t })));
+    expect(maps.length).toBeGreaterThan(0);
+    for (const { b, t } of maps) {
+      const target = b.pois[t.subject_refs[0]];
+      expect(target, `${b.seed} ${t.id}`).toBeDefined();
+      if ('poi_id' in t.holder) expect(t.holder.poi_id).not.toBe(target.id);
+    }
+    expect(maps.filter(({ b, t }) => !b.pois[t.subject_refs[0]].settlement_id).length / maps.length).toBeGreaterThan(0.6);
+    const forgotten = wild.filter(({ p }) => p.status === 'forgotten');
+    const mapped = forgotten.filter(({ b, p }) => maps.some((m) => m.b === b && m.t.subject_refs[0] === p.id));
+    expect(mapped.length / forgotten.length).toBeGreaterThan(0.7);
   });
 });
 
@@ -115,8 +152,18 @@ describe('validator catches broken places and treasures', () => {
   it('flags a location in another settlement', () => {
     expect(codesAfter((b) => {
       const n = Object.values(b.npcs)[0];
-      n.location_poi_id = Object.values(b.pois).find((p) => p.settlement_id !== n.settlement_id)!.id;
+      n.location_poi_id = Object.values(b.pois).find((p) => p.settlement_id && p.settlement_id !== n.settlement_id)!.id;
     })).toContain('error:npc.location_settlement');
+  });
+  it('flags someone at a place in the wilds', () => {
+    expect(codesAfter((b) => {
+      Object.values(b.npcs)[0].location_poi_id = Object.values(b.pois).find((p) => !p.settlement_id)!.id;
+    })).toContain('error:npc.location_wild');
+  });
+  it('flags a map that leads nowhere real', () => {
+    expect(codesAfter((b) => {
+      Object.values(b.treasures).find((x) => x.category === 'map')!.subject_refs = ['settlement_0'];
+    })).toContain('error:treasure.map');
   });
   it('flags a place without treasures', () => {
     expect(codesAfter((b) => { for (const t of treasuresAt(b, firstPoi(b).id)) delete b.treasures[t.id]; })).toContain('error:poi.treasures');

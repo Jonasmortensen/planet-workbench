@@ -10,21 +10,27 @@ import { Known, KnowScope, useKnow } from '../know';
 export function PoiPage({ poi }: { poi: PointOfInterest }) {
   const { bundle } = useBundle();
   const { isKnown, knows, explore } = useKnow();
-  const s = bundle.settlements[poi.settlement_id];
+  // A place is in a settlement, or out in the wilds near one.
+  const s = poi.settlement_id ? bundle.settlements[poi.settlement_id] : null;
+  const near = poi.near_settlement_id ? bundle.settlements[poi.near_settlement_id] : null;
   // In the explorer, someone is listed here only once the player knows where they can be found.
   const present = npcsAt(bundle, poi.id).filter((n) => !explore || knows(n.id, 'location'));
   const own = treasuresAt(bundle, poi.id);
   const carried = present.flatMap((n) => treasuresCarriedBy(bundle, n.id));
   const org = poi.organization_id ? bundle.organizations[poi.organization_id] : null;
-  const seat = org ? (org.headquarters_settlement_id === s.id ? 'Headquarters of' : 'Chapter of') : null;
+  const seat = org && s ? (org.headquarters_settlement_id === s.id ? 'Headquarters of' : 'Chapter of') : null;
 
   return (
     <KnowScope id={poi.id}>
     <article className="entity-page">
       <header className="entity-header">
-        <div className="entity-kind">Point of interest · {humanize(poi.type).toLowerCase()} · {poi.significance}</div>
+        <div className="entity-kind">Point of interest · {humanize(poi.type).toLowerCase()} · {poi.significance}{!s && ` · ${poi.status}`}</div>
         <h1>{poi.name}</h1>
-        <div className="entity-sub">{humanize(poi.type)} in <Ref id={s.id} />, <Ref id={s.country_id} /></div>
+        <div className="entity-sub">
+          {s
+            ? <>{humanize(poi.type)} in <Ref id={s.id} />, <Ref id={s.country_id} /></>
+            : <>{humanize(poi.status)} {humanize(poi.type).toLowerCase()} in the wilds near <Ref id={near!.id} />, <Ref id={near!.country_id} /></>}
+        </div>
         <Prose tagline="" description={poi.description} />
         {explore && knows(poi.id, 'details') && <div className="prose"><p>{poi.description}</p></div>}
       </header>
@@ -34,14 +40,24 @@ export function PoiPage({ poi }: { poi: PointOfInterest }) {
           <Field label="Name">{poi.name}</Field>
           <Field label="Type"><Enum value={poi.type} /></Field>
           <Field label="Significance"><Scale value={poi.significance} scale={POI_SIGNIFICANCES} /></Field>
-          <Field label="Settlement"><Ref id={s.id} /></Field>
-          <Field label="Owner">{poi.owner_npc_id && <Ref id={poi.owner_npc_id} />}</Field>
+          {s ? (
+            <>
+              <Field label="Settlement"><Ref id={s.id} /></Field>
+              <Field label="Owner">{poi.owner_npc_id && <Ref id={poi.owner_npc_id} />}</Field>
+            </>
+          ) : (
+            <>
+              <Field label="Status"><Enum value={poi.status} /></Field>
+              <Field label="Near"><Ref id={near!.id} /></Field>
+              <Field label="Position">{poi.position && `${poi.position.x.toFixed(3)}, ${poi.position.y.toFixed(3)}`}</Field>
+            </>
+          )}
           {/* A secret organization's seat stays hidden until the organization is known. */}
           {org && seat && (!explore || isKnown(org.id)) && <Field label={seat}><Ref id={org.id} /></Field>}
           <Field label="Seed"><code>{poi.seed}</code></Field>
         </Section>
 
-        <Section title={`People present (${present.length})`} wide>
+        {s && <Section title={`People present (${present.length})`} wide>
           {present.length > 0
             ? (
               <Table
@@ -56,15 +72,17 @@ export function PoiPage({ poi }: { poi: PointOfInterest }) {
               />
             )
             : <span className="muted">{explore ? 'You do not know who can be found here.' : 'nobody'}</span>}
-        </Section>
+        </Section>}
 
         <Section title={`Treasures (${explore ? own.filter((t) => isKnown(t.id)).length : own.length})`} wide>
           <TreasureTable treasures={own} />
         </Section>
 
-        <Section title="Carried by people here" wide>
-          <TreasureTable treasures={carried} holder />
-        </Section>
+        {s && (
+          <Section title="Carried by people here" wide>
+            <TreasureTable treasures={carried} holder />
+          </Section>
+        )}
 
         <ReferencedBy id={poi.id} />
         <RawJson data={poi} />
@@ -88,7 +106,8 @@ export function TreasurePage({ treasure: t }: { treasure: Treasure }) {
         <div className="entity-kind">Treasure · {t.category} · {t.rarity}</div>
         <h1>{t.name}</h1>
         <div className="entity-sub">
-          {carrier ? <>{t.embodied ? 'Is' : 'Carried by'} <Ref id={carrier.id} /></> : <>Kept at <Ref id={poi.id} /></>} in <Ref id={poi.settlement_id} />
+          {carrier ? <>{t.embodied ? 'Is' : 'Carried by'} <Ref id={carrier.id} /></> : <>Kept at <Ref id={poi.id} /></>}
+          {poi.settlement_id ? <> in <Ref id={poi.settlement_id} /></> : <> in the wilds near <Ref id={poi.near_settlement_id!} /></>}
           {' · '}<VisibilityChip visibility={t.visibility} />
         </div>
         {/* A known treasure's description is fair game in the explorer: it only says what the treasure is. */}
@@ -106,7 +125,9 @@ export function TreasurePage({ treasure: t }: { treasure: Treasure }) {
 
         <Section title="Where">
           <Field label="Holder">{carrier ? <><Ref id={carrier.id} icon /> <span className="muted">({t.embodied ? 'is the treasure' : 'carries it'})</span></> : <Ref id={poi.id} icon />}</Field>
-          <Field label="Location"><Ref id={poi.id} />, <Ref id={poi.settlement_id} /></Field>
+          <Field label="Location">
+            <Ref id={poi.id} />, {poi.settlement_id ? <Ref id={poi.settlement_id} /> : <>in the wilds near <Ref id={poi.near_settlement_id!} /></>}
+          </Field>
           <Field label="Guarded by"><RefList ids={t.guarded_by_npc_ids} /></Field>
         </Section>
 

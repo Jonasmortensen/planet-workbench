@@ -47,7 +47,7 @@ const SECTION_GROUPS: Mapping = {
   settlement: {
     Identity: 'name', Location: ['appearance', 'connections'], Population: ['appearance', 'people', 'faiths', 'governance'],
     Governance: 'governance', Economy: ['appearance', 'economy'], Defense: 'appearance', Districts: 'appearance',
-    'Points of interest': 'appearance', Treasures: 'appearance', Atmosphere: ['appearance', 'people'], 'Current situation': ['events', 'organizations'],
+    'Points of interest': 'appearance', 'Places nearby': 'appearance', Treasures: 'appearance', Atmosphere: ['appearance', 'people'], 'Current situation': ['events', 'organizations'],
     People: 'name', History: 'history', Flavor: HIDDEN,
   },
   organization: {
@@ -106,7 +106,8 @@ const FIELD_GROUPS: Mapping = {
     'Found at': 'location', 'Why there': 'location', 'Because of': 'location', Presence: 'location',
   },
   poi: {
-    Name: 'name', Type: 'details', Significance: 'details', Settlement: 'name', Owner: 'details', Seed: HIDDEN,
+    Name: 'name', Type: 'details', Significance: 'details', Settlement: 'name', Owner: 'details', Status: 'details', Near: 'name',
+    Position: 'details', Seed: HIDDEN,
   },
   treasure: {
     Name: 'name', Category: 'details', Rarity: 'details', Visibility: 'details', Seed: HIDDEN,

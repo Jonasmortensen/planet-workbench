@@ -378,6 +378,29 @@ export const POI_FLAVOR: Record<PoiType, string[]> = {
   cottage: ['Smoke curls from its chimney.', 'It is small but kept with care.'],
   tenement: ['The stairs creak and the walls are thin.', 'A dozen families share its courtyard.'],
   hovel: ['It keeps out most of the rain.', 'It is barely more than a roof.'],
+  cave: ['Its mouth breathes cold air.', 'Old fire-black marks its walls.'],
+  tomb: ['Its seals were made to last forever.', 'Whoever lies here was once mighty.'],
+  wreck: ['Its hull has long since rusted open.', 'Whatever brought it down left deep scars.'],
+  battlefield: ['Old blades still surface after the rains.', 'Nothing grows quite right here.'],
+  outpost: ['Its watchtower still stands, unmanned.', 'Its last orders are still pinned to the wall.'],
+  precursor_site: ['Its walls hum when touched.', 'No one knows who built it, or why.'],
+};
+
+/** Flavor for places out in the wilds, by status. */
+export const WILD_FLAVOR: Record<'abandoned' | 'forgotten', string[]> = {
+  abandoned: ['Locals know the way, but few go there.', 'People still speak of it, and keep their distance.', 'Its last keepers left long ago.'],
+  forgotten: ['Few remember it was ever there.', 'Only old maps still mark it.', 'The paths that led there are long overgrown.'],
+};
+
+export const WILD_SIGNIFICANCE_PHRASE: Record<PoiSignificance, string> = {
+  minor: 'a small place', notable: 'a place of some note', major: 'a place of local legend',
+  landmark: 'a place of legend across {country}',
+};
+
+/** How well known a treasure at a place in the wilds is. */
+export const WILD_TREASURE_VISIBILITY_LINE: Record<Visibility, string> = {
+  public: 'Everyone around {settlement} knows it lies there.', discreet: 'Only a few remember it is there.',
+  secret: 'No one living knows it is there.',
 };
 
 /** Why someone is where they are, as a clause after their name ("Varn is at X, {phrase}"). */

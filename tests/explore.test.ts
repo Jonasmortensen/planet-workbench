@@ -82,7 +82,9 @@ describe('dialogue', () => {
         const n = b.npcs[id];
         if (n && !n.location_public) expect(groups, id).not.toContain('location');
         if (b.treasures[id]) expect(b.treasures[id].visibility, id).toBe('public');
-        if (b.pois[id]) expect(poiInPlainSight(b, id), id).toBe(true);
+        // Places are learned in plain sight, or from a known map that leads there.
+        const mapped = Object.values(b.treasures).some((t) => t.category === 'map' && t.subject_refs[0] === id && k.entities[t.id]);
+        if (b.pois[id]) expect(poiInPlainSight(b, id) || mapped, id).toBe(true);
       }
       expect(Object.keys(k.entities).length).toBeGreaterThan(20);
       for (const h of k.rumors) expect(h.rumor).not.toHaveProperty('is_true');

@@ -461,8 +461,14 @@ export const POI_TYPES = e(
   'stables', 'meeting_hall', 'monastery', 'college', 'citadel', 'hideout',
   // Residences, from grandest to poorest
   'estate', 'manor', 'townhouse', 'house', 'cottage', 'tenement', 'hovel',
+  // Only outside settlements
+  'cave', 'tomb', 'wreck', 'battlefield', 'outpost', 'precursor_site',
 );
 export type PoiType = Of<typeof POI_TYPES>;
+
+/** in_use: a living place in a settlement. Outside settlements: abandoned (known, but nobody goes) or forgotten (lost; maps lead there). */
+export const POI_STATUSES = e('in_use', 'abandoned', 'forgotten');
+export type PoiStatus = Of<typeof POI_STATUSES>;
 
 /** ordered */
 export const POI_SIGNIFICANCES = e('minor', 'notable', 'major', 'landmark');

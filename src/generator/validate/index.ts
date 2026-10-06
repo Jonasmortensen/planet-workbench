@@ -64,8 +64,16 @@ const checkIds: Check = (bundle) => {
       if (bundle.pois[id] && bundle.pois[id].settlement_id !== s.id) issues.push(error('symmetry.poi', s.id, `Lists ${id}, which says it is in ${bundle.pois[id].settlement_id}`));
     }
   }
+  // A place in the wilds is listed by exactly the settlement it lies near.
+  for (const s of Object.values(bundle.settlements)) {
+    for (const id of s.nearby_poi_ids) {
+      if (listed.has(id)) issues.push(error('id.duplicate', s.id, `Point of interest "${id}" is listed by ${listed.get(id)} and ${s.id}`));
+      listed.set(id, s.id);
+      if (bundle.pois[id] && bundle.pois[id].near_settlement_id !== s.id) issues.push(error('symmetry.poi', s.id, `Lists ${id} as nearby, which says it is near ${bundle.pois[id].near_settlement_id}`));
+    }
+  }
   for (const poi of Object.values(bundle.pois)) {
-    if (!listed.has(poi.id)) issues.push(error('symmetry.poi', poi.id, `Not listed by its settlement ${poi.settlement_id}`));
+    if (!listed.has(poi.id)) issues.push(error('symmetry.poi', poi.id, `Not listed by its settlement ${poi.settlement_id ?? poi.near_settlement_id}`));
   }
   return issues;
 };

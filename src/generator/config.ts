@@ -86,6 +86,12 @@ export const CONFIG = {
   },
 
   places: {
+    /**
+     * Abandoned and forgotten places outside settlements, per settlement: base expected count, plus more
+     * around ruinous settlements and on worlds the precursors left behind. They lie distance (planet units) away;
+     * greater is the chance one is a step more significant than its type.
+     */
+    wild: { base: 0.6, ruinBoost: 0.7, precursorBoost: 0.3, distance: [0.02, 0.06] as [number, number], greater: 0.35 },
     /** Chance an NPC is at work rather than home, before adjustments (elders and nobles stay home more). */
     atWork: 0.7,
     /** The same for NPCs who publicly lead something. */

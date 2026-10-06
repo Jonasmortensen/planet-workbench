@@ -18,9 +18,21 @@ export interface PoiDef extends WeightedDef {
   significance: number;
   /** A home rather than a venue: NPCs live here. */
   residence?: boolean;
+  /** Can also lie abandoned or forgotten outside settlements. */
+  wild?: WildDef;
+  /** Only ever found outside settlements. */
+  wildOnly?: boolean;
   /** Treasure categories that fit here, weighted. Others still appear through world facts (intel, leverage). */
   treasures: Partial<Record<TreasureCategory, number>>;
   namePatterns: NamePattern[];
+}
+
+/** A place outside settlements: how often it is picked there, and the share that is forgotten rather than abandoned. */
+export interface WildDef {
+  weight: number;
+  forgotten: number;
+  /** Names for the abandoned version; the type's own names are used otherwise. */
+  namePatterns?: NamePattern[];
 }
 
 const VENUE = (nouns: string[]): NamePattern[] => [
@@ -33,9 +45,9 @@ const P = (pattern: string, weight = 1): NamePattern => ({ pattern, weight });
 
 export const POI_TABLE: Record<PoiType, PoiDef> = {
   tavern: { weight: 8, minSize: 1, significance: 0, districts: ['market', 'docks', 'residential', 'entertainment', 'slums'], treasures: { intel: 3, wealth: 1, map: 1 }, namePatterns: VENUE(['Tavern', 'Taproom', 'Alehouse']) },
-  temple: { weight: 5, minSize: 1, significance: 1, districts: ['temple', 'old_town'], treasures: { relic: 5, knowledge: 3, wealth: 1, artifact: 1 }, namePatterns: [P('Temple of the {adjective} {noun}', 3), P('the {root} Temple', 2), P('House of {root}')] },
+  temple: { weight: 5, minSize: 1, significance: 1, districts: ['temple', 'old_town'], treasures: { relic: 5, knowledge: 3, wealth: 1, artifact: 1 }, wild: { weight: 1, forgotten: 0.5, namePatterns: [P('the Sunken Temple of {root}', 2), P('the {adjective} Temple', 1.5)] }, namePatterns: [P('Temple of the {adjective} {noun}', 3), P('the {root} Temple', 2), P('House of {root}')] },
   guild_hall: { weight: 4, minSize: 2, significance: 1, districts: ['artisan', 'market', 'industrial'], treasures: { wealth: 3, knowledge: 2, access: 2, technology: 1 }, namePatterns: [P('the {noun} Guildhall', 3), P('Hall of the {adjective} {noun}', 2)] },
-  ruin: { weight: 2, minSize: 1, significance: 1, districts: ['ruins', 'old_town'], treasures: { artifact: 5, relic: 2, map: 2, technology: 1, weapon: 1 }, namePatterns: [P('the {adjective} Ruin', 2), P('the Ruins of {root}', 3)] },
+  ruin: { weight: 2, minSize: 1, significance: 1, districts: ['ruins', 'old_town'], treasures: { artifact: 5, relic: 2, map: 2, technology: 1, weapon: 1 }, wild: { weight: 5, forgotten: 0.5 }, namePatterns: [P('the {adjective} Ruin', 2), P('the Ruins of {root}', 3)] },
   spaceport: { weight: 3, minSize: 2, significance: 2, districts: ['spaceport'], constraints: { minTech: 6 }, treasures: { technology: 3, map: 3, resource: 2, access: 2 }, namePatterns: [P('{root} Starport', 3), P('the {adjective} Landing', 2)] },
   black_market: { weight: 2, minSize: 2, significance: 1, districts: ['slums', 'undercity', 'docks'], treasures: { weapon: 3, technology: 2, resource: 2, intel: 2, artifact: 1 }, namePatterns: [P('the {adjective} Market', 2), P('the Underbazaar'), P("{root}'s Back Room", 1.5)] },
   market: { weight: 5, minSize: 1, significance: 1, districts: ['market'], treasures: { resource: 4, wealth: 2, artifact: 1 }, namePatterns: [P('the {adjective} Market', 3), P('{root} Square', 2)] },
@@ -47,10 +59,10 @@ export const POI_TABLE: Record<PoiType, PoiDef> = {
   arena: { weight: 1.5, minSize: 3, significance: 2, districts: ['entertainment'], treasures: { weapon: 4, armor: 3, wealth: 2 }, namePatterns: [P('the {adjective} Arena', 2), P('the {root} Pit', 1.5)] },
   bathhouse: { weight: 1.5, minSize: 2, significance: 0, districts: ['entertainment', 'residential', 'noble_quarter'], constraints: { requiresLiquidWater: true }, treasures: { intel: 3, wealth: 1 }, namePatterns: [P('the {adjective} Baths', 2), P('{root} Springs', 1.5)] },
   workshop: { weight: 4, minSize: 1, significance: 0, districts: ['artisan', 'industrial'], treasures: { weapon: 3, armor: 2, technology: 3, resource: 2 }, namePatterns: [P("{root}'s Workshop", 3), P('the {adjective} {noun} Works', 1.5)] },
-  shrine: { weight: 3, minSize: 1, significance: 0, districts: ['temple', 'gardens', 'farmland'], treasures: { relic: 5, knowledge: 1 }, namePatterns: [P('the Shrine of the {noun}', 3), P("{root}'s Shrine", 2)] },
+  shrine: { weight: 3, minSize: 1, significance: 0, districts: ['temple', 'gardens', 'farmland'], treasures: { relic: 5, knowledge: 1 }, wild: { weight: 2, forgotten: 0.5, namePatterns: [P('the Lost Shrine of the {noun}', 2), P("{root}'s Forgotten Shrine", 1.5)] }, namePatterns: [P('the Shrine of the {noun}', 3), P("{root}'s Shrine", 2)] },
   prison: { weight: 1, minSize: 2, significance: 1, districts: ['military', 'administrative'], treasures: { intel: 3, access: 2, leverage: 2 }, namePatterns: [P('the {adjective} Gaol', 2), P('{root} Hold', 2)] },
   embassy: { weight: 1, minSize: 4, significance: 2, districts: ['foreign_quarter', 'administrative'], treasures: { intel: 4, leverage: 2, access: 2, wealth: 1 }, namePatterns: [P('the {root} Embassy', 3)] },
-  observatory: { weight: 1, minSize: 2, significance: 1, districts: ['academic', 'temple'], constraints: { minTech: 2 }, treasures: { map: 4, knowledge: 3, technology: 1 }, namePatterns: [P('the {adjective} Observatory', 2), P('{root} Watch', 1.5)] },
+  observatory: { weight: 1, minSize: 2, significance: 1, districts: ['academic', 'temple'], constraints: { minTech: 2 }, treasures: { map: 4, knowledge: 3, technology: 1 }, wild: { weight: 0.7, forgotten: 0.5, namePatterns: [P('the Old {root} Observatory', 2), P('the {adjective} Tower', 1.5)] }, namePatterns: [P('the {adjective} Observatory', 2), P('{root} Watch', 1.5)] },
   museum: { weight: 1, minSize: 3, significance: 1, districts: ['academic', 'old_town', 'administrative'], constraints: { minTech: 4 }, treasures: { artifact: 4, relic: 2, weapon: 1, armor: 1, map: 1 }, namePatterns: [P('the {root} Collection', 2), P('the Museum of the {adjective} {noun}', 1.5)] },
   gambling_den: { weight: 2, minSize: 2, significance: 0, districts: ['entertainment', 'slums', 'docks'], treasures: { wealth: 4, leverage: 2, intel: 2 }, namePatterns: [P('the {adjective} Wheel', 2), P("{root}'s Tables", 2), P('the {noun} and Dice')] },
   inn: { weight: 5, minSize: 1, significance: 0, districts: ['market', 'residential', 'foreign_quarter'], treasures: { intel: 2, map: 2, wealth: 1 }, namePatterns: VENUE(['Inn', 'Rest', 'Lodge']) },
@@ -61,7 +73,7 @@ export const POI_TABLE: Record<PoiType, PoiDef> = {
   salvage_yard: { weight: 2, minSize: 1, significance: 0, districts: ['industrial', 'slums', 'ruins', 'warehouse'], treasures: { technology: 3, artifact: 2, resource: 2 }, namePatterns: [P("{root}'s Salvage", 2), P('the {adjective} Scrapyard', 1.5)] },
   theater: { weight: 1.5, minSize: 3, significance: 1, districts: ['entertainment', 'noble_quarter'], treasures: { intel: 2, wealth: 2, artifact: 1 }, namePatterns: [P('the {adjective} Stage', 2), P('the {root} Playhouse', 2)] },
   garden: { weight: 2, minSize: 2, significance: 1, districts: ['gardens', 'noble_quarter'], constraints: { biospheres: ['sparse', 'complex', 'lush', 'exotic', 'dying'] }, treasures: { resource: 3, relic: 1, knowledge: 1 }, namePatterns: [P('the {adjective} Garden', 2), P("{root}'s Garden", 1.5)] },
-  crypt: { weight: 1.5, minSize: 2, significance: 1, districts: ['necropolis', 'temple', 'old_town'], treasures: { relic: 4, artifact: 2, knowledge: 2, wealth: 1 }, namePatterns: [P('the Crypt of {root}', 2), P('the {adjective} Vault', 1.5)] },
+  crypt: { weight: 1.5, minSize: 2, significance: 1, districts: ['necropolis', 'temple', 'old_town'], treasures: { relic: 4, artifact: 2, knowledge: 2, wealth: 1 }, wild: { weight: 1.5, forgotten: 0.6, namePatterns: [P('the Crypt of {root}', 2), P('the {adjective} Catacombs', 1.5)] }, namePatterns: [P('the Crypt of {root}', 2), P('the {adjective} Vault', 1.5)] },
 
   city_hall: { weight: 3, minSize: 2, significance: 2, districts: ['administrative', 'old_town'], treasures: { access: 3, leverage: 3, intel: 2, wealth: 1 }, namePatterns: [P('{root} Town Hall', 2), P('the {adjective} Hall', 1.5), P('the Hall of {root}')] },
   courthouse: { weight: 1.5, minSize: 3, significance: 1, districts: ['administrative'], treasures: { leverage: 3, intel: 3, access: 1 }, namePatterns: [P('the {adjective} Court', 2), P('the {root} Assizes')] },
@@ -69,13 +81,13 @@ export const POI_TABLE: Record<PoiType, PoiDef> = {
   trading_house: { weight: 2, minSize: 2, significance: 1, districts: ['market', 'docks', 'warehouse'], treasures: { wealth: 3, resource: 3, map: 2 }, namePatterns: [P('{root} and Sons', 1.5), P('the {adjective} Company House', 1.5), P("{root}'s Trading House", 2)] },
   warehouse: { weight: 2, minSize: 2, significance: 0, districts: ['warehouse', 'docks', 'industrial'], treasures: { resource: 4, wealth: 2, weapon: 1 }, namePatterns: [P('the {adjective} Warehouse', 2), P("{root}'s Stores", 2)] },
   farmstead: { weight: 3, minSize: 1, significance: 0, districts: ['farmland'], treasures: { resource: 4, map: 1, relic: 1 }, namePatterns: [P("{root}'s Farm", 3), P('{adjective} {noun} Farm', 1.5)] },
-  mine: { weight: 2, minSize: 1, significance: 1, districts: ['industrial', 'undercity'], treasures: { resource: 5, artifact: 1, map: 1 }, namePatterns: [P('the {root} Diggings', 2), P('the {adjective} Shaft', 2)] },
-  hunting_lodge: { weight: 1.5, minSize: 1, significance: 0, districts: ['farmland', 'gardens'], treasures: { weapon: 3, resource: 2, map: 2 }, namePatterns: [P("{root}'s Lodge", 2), P('the {adjective} Lodge', 1.5)] },
+  mine: { weight: 2, minSize: 1, significance: 1, districts: ['industrial', 'undercity'], treasures: { resource: 5, artifact: 1, map: 1 }, wild: { weight: 2, forgotten: 0.3, namePatterns: [P('the Old {root} Diggings', 2), P('the Abandoned {adjective} Shaft', 2)] }, namePatterns: [P('the {root} Diggings', 2), P('the {adjective} Shaft', 2)] },
+  hunting_lodge: { weight: 1.5, minSize: 1, significance: 0, districts: ['farmland', 'gardens'], treasures: { weapon: 3, resource: 2, map: 2 }, wild: { weight: 0.7, forgotten: 0.2, namePatterns: [P("{root}'s Old Lodge", 2), P('the Deserted {adjective} Lodge', 1.5)] }, namePatterns: [P("{root}'s Lodge", 2), P('the {adjective} Lodge', 1.5)] },
   stables: { weight: 2, minSize: 1, significance: 0, districts: ['market', 'farmland'], treasures: { resource: 2, map: 2, access: 1 }, namePatterns: [P("{root}'s Stables", 2), P('the {adjective} Stables', 1.5)] },
   meeting_hall: { weight: 2, minSize: 1, significance: 1, districts: ['residential', 'old_town', 'market'], treasures: { intel: 2, knowledge: 2, wealth: 1 }, namePatterns: [P('the {adjective} Meeting House', 2), P('{root} Commons', 1.5)] },
-  monastery: { weight: 1, minSize: 1, significance: 1, districts: ['temple', 'gardens'], treasures: { relic: 4, knowledge: 4, artifact: 1 }, namePatterns: [P('the Cloister of {root}', 2), P('the {adjective} Abbey', 2)] },
+  monastery: { weight: 1, minSize: 1, significance: 1, districts: ['temple', 'gardens'], treasures: { relic: 4, knowledge: 4, artifact: 1 }, wild: { weight: 1, forgotten: 0.4, namePatterns: [P('the Empty Cloister of {root}', 2), P('the {adjective} Hermitage', 1.5)] }, namePatterns: [P('the Cloister of {root}', 2), P('the {adjective} Abbey', 2)] },
   college: { weight: 1, minSize: 3, significance: 2, districts: ['academic'], treasures: { knowledge: 5, technology: 2, map: 1 }, namePatterns: [P('the {root} College', 2), P('the College of the {adjective} {noun}', 1.5)] },
-  citadel: { weight: 1, minSize: 2, significance: 2, districts: ['military', 'old_town'], treasures: { weapon: 4, armor: 4, map: 2, access: 1 }, namePatterns: [P('the {adjective} Citadel', 2), P('{root} Keep', 2)] },
+  citadel: { weight: 1, minSize: 2, significance: 2, districts: ['military', 'old_town'], treasures: { weapon: 4, armor: 4, map: 2, access: 1 }, wild: { weight: 1, forgotten: 0.3, namePatterns: [P('the Broken Citadel of {root}', 2), P('the {adjective} Keep', 1.5)] }, namePatterns: [P('the {adjective} Citadel', 2), P('{root} Keep', 2)] },
   hideout: { weight: 1, minSize: 1, significance: 0, districts: ['undercity', 'slums', 'warehouse', 'ruins'], treasures: { wealth: 3, weapon: 2, intel: 3, leverage: 2 }, namePatterns: [P('the cellar under {street}', 2), P('the {adjective} Den', 1.5), P('the old {noun} Works', 1)] },
 
   estate: { weight: 1, minSize: 1, significance: 1, residence: true, districts: ['noble_quarter'], treasures: { wealth: 4, artifact: 2, leverage: 1, weapon: 1, relic: 1 }, namePatterns: [P('the {family} Estate', 3), P('{family} Hall', 1.5), P('the {family} family seat')] },
@@ -85,6 +97,12 @@ export const POI_TABLE: Record<PoiType, PoiDef> = {
   cottage: { weight: 1, minSize: 1, significance: 0, residence: true, districts: ['residential', 'farmland'], treasures: { relic: 1, map: 1, wealth: 1, knowledge: 1 }, namePatterns: [P("{given}'s cottage on {street}", 3), P('the {family} cottage', 1.5)] },
   tenement: { weight: 1, minSize: 3, significance: 0, residence: true, districts: ['slums', 'residential'], treasures: { intel: 1, wealth: 1, map: 1 }, namePatterns: [P("{given}'s rooms in the {street} Tenements", 3), P("a garret above {street}", 1)] },
   hovel: { weight: 1, minSize: 1, significance: 0, residence: true, districts: ['slums', 'undercity', 'ruins'], treasures: { map: 1, artifact: 1, intel: 1 }, namePatterns: [P("{given}'s shack off {street}", 3), P('a lean-to under the {noun} Bridge', 1)] },
+  cave: { weight: 1, minSize: 0, significance: 0, districts: [], wildOnly: true, wild: { weight: 3, forgotten: 0.5 }, treasures: { resource: 3, artifact: 2, wealth: 2, map: 1 }, namePatterns: [P('the {adjective} Cave', 2), P("{root}'s Hollow", 1.5), P('the Caves of {root}', 1.5)] },
+  tomb: { weight: 1, minSize: 0, significance: 1, districts: [], wildOnly: true, wild: { weight: 2.5, forgotten: 0.6 }, treasures: { relic: 4, wealth: 3, artifact: 2, weapon: 1, armor: 1 }, namePatterns: [P('the Tomb of {root}', 3), P('the {adjective} Barrow', 2), P('the Sepulchre of {root}', 1)] },
+  wreck: { weight: 1, minSize: 0, significance: 1, districts: [], wildOnly: true, wild: { weight: 2, forgotten: 0.5 }, treasures: { wealth: 3, technology: 3, resource: 2, map: 2, weapon: 1 }, namePatterns: [P('the Wreck of the {adjective} {noun}', 3), P('the {root} Wreck', 1.5)] },
+  battlefield: { weight: 1, minSize: 0, significance: 1, districts: [], wildOnly: true, wild: { weight: 1.5, forgotten: 0.2 }, treasures: { weapon: 4, armor: 4, relic: 1, map: 1 }, namePatterns: [P('the Field of {root}', 2), P('the {adjective} Field', 2), P("{root}'s Last Stand", 1)] },
+  outpost: { weight: 1, minSize: 0, significance: 0, districts: [], wildOnly: true, wild: { weight: 1.5, forgotten: 0.4 }, treasures: { map: 3, weapon: 2, technology: 2, knowledge: 1, resource: 1 }, namePatterns: [P('the {adjective} Outpost', 2), P('Fort {root}', 2), P('the {root} Waystation', 1.5)] },
+  precursor_site: { weight: 1, minSize: 0, significance: 2, districts: [], wildOnly: true, constraints: { requiresPrecursors: true }, wild: { weight: 3, forgotten: 0.8 }, treasures: { technology: 4, artifact: 4, knowledge: 2, map: 1 }, namePatterns: [P('the {adjective} Spire', 2), P('the {root} Vault', 2), P('the Gate of {root}', 1.5)] },
 };
 
 /** Street names for residences ("{given}'s house on {street}"). */

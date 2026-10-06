@@ -145,10 +145,13 @@ export const ACCESS_NAMES: Record<'organization' | 'poi' | 'country' | 'settleme
   settlement: [{ pattern: 'the Freedom of {subject}', weight: 2 }, { pattern: 'the Seal of {subject}', weight: 2 }],
 };
 
-export const MAP_NAMES: Record<'feature' | 'poi' | 'settlement', NamePattern[]> = {
-  feature: [{ pattern: 'Coordinates to {feature}', weight: 2 }, { pattern: 'the Way to {feature}', weight: 2 }],
-  poi: [{ pattern: 'the Lost Plans of {subject}', weight: 2 }, { pattern: 'the Secret Ways under {subject}', weight: 2 }],
-  settlement: [{ pattern: 'the Undercity Charts of {subject}', weight: 2 }, { pattern: 'the Hidden Roads to {subject}', weight: 2 }],
+/** Maps always lead to a real point of interest: out in the wilds, or hidden ways into one in a settlement. */
+export const MAP_NAMES: Record<'wild' | 'hidden', NamePattern[]> = {
+  wild: [
+    { pattern: 'the Way to {subject}', weight: 2 }, { pattern: 'the Lost Road to {subject}', weight: 2 },
+    { pattern: 'a Chart of {subject}', weight: 1.5 }, { pattern: 'the {epithet} Map to {subject}', weight: 1 },
+  ],
+  hidden: [{ pattern: 'the Lost Plans of {subject}', weight: 2 }, { pattern: 'the Secret Ways under {subject}', weight: 2 }],
 };
 
 /** NPCs who are a treasure because of what they can do or know. */
