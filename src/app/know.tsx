@@ -47,7 +47,7 @@ const SECTION_GROUPS: Mapping = {
   settlement: {
     Identity: 'name', Location: ['appearance', 'connections'], Population: ['appearance', 'people', 'faiths', 'governance'],
     Governance: 'governance', Economy: ['appearance', 'economy'], Defense: 'appearance', Districts: 'appearance',
-    'Points of interest': 'appearance', Atmosphere: ['appearance', 'people'], 'Current situation': ['events', 'organizations'],
+    'Points of interest': 'appearance', Treasures: 'appearance', Atmosphere: ['appearance', 'people'], 'Current situation': ['events', 'organizations'],
     People: 'name', History: 'history', Flavor: HIDDEN,
   },
   organization: {

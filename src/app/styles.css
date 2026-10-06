@@ -373,3 +373,11 @@ button.badge { border: none; cursor: pointer; font: inherit; font-size: 12px; fo
   .ask-item { padding: 9px 8px; }
   .ask-list { max-height: 45dvh; }
 }
+
+/* Foldable sections */
+.section-fold {
+  display: flex; align-items: center; gap: 4px; width: 100%; padding: 0; border: none; background: none; cursor: pointer;
+  color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; text-align: left;
+}
+.section-fold:hover { color: var(--text); }
+.section-title:has(.section-fold[aria-expanded="false"]) { margin-bottom: 0; }

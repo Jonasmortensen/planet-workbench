@@ -3,7 +3,7 @@ import {
   CORRUPTION_LEVELS, GARRISON_STRENGTHS, LAW_LEVELS, MARKET_SIZES, WEALTH_LEVELS, type Settlement,
 } from '../../generator';
 import { Enum, EnumList, Field, RawJson, Scale, Section, Table } from '../components/Fields';
-import { PresenceChip } from '../components/Places';
+import { PresenceChip, SettlementTreasureTable } from '../components/Places';
 import { Ref, RefList } from '../components/Ref';
 import { HistoryTable, Prose, ReferencedBy, ReligionTable, RumorTable, SpeciesTable } from '../components/Shared';
 import { useBundle } from '../context';
@@ -16,6 +16,10 @@ export function SettlementPage({ settlement: s }: { settlement: Settlement }) {
   const country = bundle.countries[s.country_id];
   const pois = s.poi_ids.map((id) => bundle.pois[id]).filter((p) => isKnown(p.id))
     .sort((a, b) => POI_SIGNIFICANCES.indexOf(b.significance) - POI_SIGNIFICANCES.indexOf(a.significance));
+  // Treasures kept at this settlement's places or carried by its people; in the explorer, only known ones.
+  const treasures = Object.values(bundle.treasures).filter((t) => isKnown(t.id) && ('poi_id' in t.holder
+    ? bundle.pois[t.holder.poi_id]?.settlement_id === s.id
+    : bundle.npcs[t.holder.npc_id]?.settlement_id === s.id));
   const people = Object.values(bundle.npcs)
     .filter((n) => n.settlement_id === s.id)
     .sort((a, b) => (a.npc_category === b.npc_category ? 0 : a.npc_category === 'leader' ? -1 : 1));
@@ -100,6 +104,10 @@ export function SettlementPage({ settlement: s }: { settlement: Settlement }) {
               treasuresAt(bundle, poi.id).filter((t) => isKnown(t.id)).length,
             ])}
           />
+        </Section>
+
+        <Section title={`Treasures (${treasures.length})`} wide foldable>
+          <SettlementTreasureTable bundle={bundle} treasures={treasures} />
         </Section>
 
         <Section title="Atmosphere">

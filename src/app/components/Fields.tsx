@@ -2,13 +2,29 @@ import { useState, type ReactNode } from 'react';
 import { humanize } from '../format';
 import { SectionGroups, useFieldGate, useKnow, useSectionGate } from '../know';
 
-export function Section({ title, children, wide }: { title: string; children: ReactNode; wide?: boolean }) {
+/** A titled card. A foldable section starts collapsed and opens from its title. */
+export function Section({ title, children, wide, foldable }: { title: string; children: ReactNode; wide?: boolean; foldable?: boolean }) {
   const gate = useSectionGate(title);
+  const [open, setOpen] = useState(false);
   if (!gate.visible) return null;
+  const body = <div className="section-body"><SectionGroups groups={gate.groups}>{children}</SectionGroups></div>;
   return (
     <section className={wide ? 'section section-wide' : 'section'}>
-      <h3 className="section-title">{title}</h3>
-      <div className="section-body"><SectionGroups groups={gate.groups}>{children}</SectionGroups></div>
+      {foldable ? (
+        <>
+          <h3 className="section-title">
+            <button type="button" className="section-fold" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+              <span className="tree-caret">{open ? '▾' : '▸'}</span>{title}
+            </button>
+          </h3>
+          {open && body}
+        </>
+      ) : (
+        <>
+          <h3 className="section-title">{title}</h3>
+          {body}
+        </>
+      )}
     </section>
   );
 }
