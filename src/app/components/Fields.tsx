@@ -1,17 +1,22 @@
 import { useState, type ReactNode } from 'react';
 import { humanize } from '../format';
+import { SectionGroups, useFieldGate, useKnow, useSectionGate } from '../know';
 
 export function Section({ title, children, wide }: { title: string; children: ReactNode; wide?: boolean }) {
+  const gate = useSectionGate(title);
+  if (!gate.visible) return null;
   return (
     <section className={wide ? 'section section-wide' : 'section'}>
       <h3 className="section-title">{title}</h3>
-      <div className="section-body">{children}</div>
+      <div className="section-body"><SectionGroups groups={gate.groups}>{children}</SectionGroups></div>
     </section>
   );
 }
 
 /** A label/value row. Empty values render as a muted dash so gaps are visible. */
 export function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
+  const visible = useFieldGate(label);
+  if (!visible) return null;
   const empty = children === null || children === undefined || children === false || children === '' || (Array.isArray(children) && children.length === 0);
   return (
     <div className="field">
@@ -65,6 +70,8 @@ export function ShareBar({ share }: { share: number }) {
 
 export function RawJson({ data }: { data: unknown }) {
   const [open, setOpen] = useState(false);
+  const { explore } = useKnow();
+  if (explore) return null;
   return (
     <div className="raw-json">
       <button className="btn btn-ghost" onClick={() => setOpen((o) => !o)}>{open ? 'Hide raw JSON' : 'Show raw JSON'}</button>

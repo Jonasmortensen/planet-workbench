@@ -150,7 +150,7 @@ export function Sidebar() {
   );
 }
 
-function TreeGroup({ label, open, onToggle, children, nested }: {
+export function TreeGroup({ label, open, onToggle, children, nested }: {
   label: string; open: boolean; onToggle: () => void; children: ReactNode; nested?: boolean;
 }) {
   return (
@@ -163,7 +163,7 @@ function TreeGroup({ label, open, onToggle, children, nested }: {
   );
 }
 
-function TreeItem({ icon, label, meta, selected, onSelect, expandable, open, onToggle, children }: {
+export function TreeItem({ icon, label, meta, selected, onSelect, expandable, open, onToggle, children }: {
   icon: string; label: string; meta?: string; selected: boolean; onSelect: () => void;
   expandable?: boolean; open?: boolean; onToggle?: () => void; children?: ReactNode;
 }) {

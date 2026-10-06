@@ -2,6 +2,7 @@ import type { Motive, Relation } from '../../generator';
 import { humanize } from '../format';
 import { Enum, Table } from './Fields';
 import { Ref } from './Ref';
+import { useKnow } from '../know';
 
 const ATTITUDE_CLASS: Record<string, string> = {
   allied: 'att-allied', friendly: 'att-friendly', neutral: 'att-neutral', rival: 'att-rival', hostile: 'att-hostile', at_war: 'att-war',
@@ -11,7 +12,9 @@ export function Attitude({ value }: { value: string }) {
   return <span className={`chip ${ATTITUDE_CLASS[value] ?? ''}`} title={value}>{humanize(value)}</span>;
 }
 
-export function RelationTable({ relations, empty = 'none' }: { relations: Relation[]; empty?: string }) {
+export function RelationTable({ relations: all, empty = 'none' }: { relations: Relation[]; empty?: string }) {
+  const { isKnown } = useKnow();
+  const relations = all.filter((r) => isKnown(r.target_ref));
   if (relations.length === 0) return <span className="muted">{empty}</span>;
   return (
     <Table

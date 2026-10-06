@@ -4,6 +4,7 @@ import { Enum, EnumList, Field, RawJson, Section, Table } from '../components/Fi
 import { Ref, RefList } from '../components/Ref';
 import { ReferencedBy } from '../components/Shared';
 import { useBundle } from '../context';
+import { KnowScope } from '../know';
 import { formatTemp } from '../format';
 
 /** Where a species, language or faith shows up: planet, countries and settlements with their shares. */
@@ -36,6 +37,7 @@ export function SpeciesPage({ species: s }: { species: Species }) {
   const { bundle } = useBundle();
   const share = bundle.planet.species.find((x) => x.species_id === s.id)?.share ?? 0;
   return (
+    <KnowScope id={s.id}>
     <article className="entity-page">
       <header className="entity-header">
         <div className="entity-kind">Species · {s.origin}</div>
@@ -61,12 +63,14 @@ export function SpeciesPage({ species: s }: { species: Species }) {
       </div>
       <RawJson data={s} />
     </article>
+    </KnowScope>
   );
 }
 
 export function LanguagePage({ language: l }: { language: Language }) {
   const ph = l.phonology;
   return (
+    <KnowScope id={l.id}>
     <article className="entity-page">
       <header className="entity-header">
         <div className="entity-kind">Language · {l.origin}</div>
@@ -91,11 +95,13 @@ export function LanguagePage({ language: l }: { language: Language }) {
       </div>
       <RawJson data={l} />
     </article>
+    </KnowScope>
   );
 }
 
 export function ReligionPage({ religion: r }: { religion: Religion }) {
   return (
+    <KnowScope id={r.id}>
     <article className="entity-page">
       <header className="entity-header">
         <div className="entity-kind">Faith · {r.kind.replace(/_/g, ' ')}</div>
@@ -115,5 +121,6 @@ export function ReligionPage({ religion: r }: { religion: Religion }) {
       </div>
       <RawJson data={r} />
     </article>
+    </KnowScope>
   );
 }

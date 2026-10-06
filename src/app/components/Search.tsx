@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { ENTITY_KINDS, type EntityKind, type PlanetBundle } from '../../generator';
+import { ENTITY_KINDS, entityName, type EntityKind, type PlanetBundle } from '../../generator';
 import { useBundle } from '../context';
+import { useKnow } from '../know';
 import { humanize } from '../format';
 import { KIND_ICON } from './Ref';
 
@@ -37,9 +38,12 @@ function buildIndex(b: PlanetBundle): Entry[] {
 /** Filter all entities of the current planet by name or type. */
 export function SearchResults({ query, kind }: { query: string; kind: 'all' | EntityKind }) {
   const { bundle, open, selectedId } = useBundle();
+  const { isKnown, knows } = useKnow();
   const index = useMemo(() => buildIndex(bundle), [bundle]);
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
-  const results = index.filter((e) => (kind === 'all' || e.kind === kind) && terms.every((t) => e.text.includes(t)));
+  // In the explorer only known entities are searchable (points of interest once their settlement has been seen).
+  const results = index.filter((e) => isKnown(e.id) && (e.name === entityName(bundle, e.id) || knows(e.id, 'appearance'))
+    && (kind === 'all' || e.kind === kind) && terms.every((t) => e.text.includes(t)));
   return (
     <div className="search-results">
       <div className="tree-empty">{results.length} match{results.length === 1 ? '' : 'es'}</div>

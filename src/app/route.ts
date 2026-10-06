@@ -1,22 +1,26 @@
 import { useCallback, useEffect, useState } from 'react';
 
 /**
- * Hash routing: #/s/<seed>[/<entityId>]. The seed is in the URL so a planet
- * can be bookmarked and regenerates identically.
+ * Hash routing: #/s/<seed>[/<entityId>] for the inspector, #/x/... for the
+ * explorer. The seed is in the URL so a planet can be bookmarked and
+ * regenerates identically.
  */
+export type Mode = 'inspect' | 'explore';
+
 export interface Route {
+  mode?: Mode;
   seed: string;
   entityId: string | null;
 }
 
 export function parseHash(hash: string): Route | null {
-  const m = hash.replace(/^#/, '').match(/^\/s\/([^/]+)(?:\/([^/]+))?/);
+  const m = hash.replace(/^#/, '').match(/^\/([sx])\/([^/]+)(?:\/([^/]+))?/);
   if (!m) return null;
-  return { seed: decodeURIComponent(m[1]), entityId: m[2] ? decodeURIComponent(m[2]) : null };
+  return { mode: m[1] === 'x' ? 'explore' : 'inspect', seed: decodeURIComponent(m[2]), entityId: m[3] ? decodeURIComponent(m[3]) : null };
 }
 
 export function formatHash(route: Route): string {
-  const base = `#/s/${encodeURIComponent(route.seed)}`;
+  const base = `#/${route.mode === 'explore' ? 'x' : 's'}/${encodeURIComponent(route.seed)}`;
   return route.entityId ? `${base}/${encodeURIComponent(route.entityId)}` : base;
 }
 

@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const ROOT = join(__dirname, '..', 'src', 'generator');
+const ROOTS = [join(__dirname, '..', 'src', 'generator'), join(__dirname, '..', 'src', 'explore')];
 
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((f) => {
@@ -22,7 +22,7 @@ const FORBIDDEN: [RegExp, string][] = [
 describe('generator purity', () => {
   it('has no UI, DOM, clock or Math.random dependencies', () => {
     const problems: string[] = [];
-    for (const file of files(ROOT)) {
+    for (const file of ROOTS.flatMap(files)) {
       const src = readFileSync(file, 'utf8');
       for (const [re, label] of FORBIDDEN) if (re.test(src)) problems.push(`${file}: ${label}`);
     }

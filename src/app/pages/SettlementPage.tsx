@@ -5,16 +5,19 @@ import { Enum, EnumList, Field, RawJson, Scale, Section, Table } from '../compon
 import { Ref, RefList } from '../components/Ref';
 import { HistoryTable, Prose, ReferencedBy, ReligionTable, RumorTable, SpeciesTable } from '../components/Shared';
 import { useBundle } from '../context';
+import { Known, KnowScope, useKnow } from '../know';
 import { formatPopulation, formatYearsAgo } from '../format';
 
 export function SettlementPage({ settlement: s }: { settlement: Settlement }) {
   const { bundle } = useBundle();
+  const { isKnown, explore } = useKnow();
   const country = bundle.countries[s.country_id];
   const people = Object.values(bundle.npcs)
     .filter((n) => n.settlement_id === s.id)
     .sort((a, b) => (a.npc_category === b.npc_category ? 0 : a.npc_category === 'leader' ? -1 : 1));
 
   return (
+    <KnowScope id={s.id}>
     <article className="entity-page">
       <header className="entity-header">
         <div className="entity-kind">Settlement · {s.settlement_type.replace(/_/g, ' ')}</div>
@@ -42,7 +45,7 @@ export function SettlementPage({ settlement: s }: { settlement: Settlement }) {
             {s.connections.length > 0 && (
               <Table
                 head={['To', 'Link', 'Country']}
-                rows={s.connections.map((c) => {
+                rows={s.connections.filter((c) => isKnown(c.settlement_id)).map((c) => {
                   const other = bundle.settlements[c.settlement_id];
                   return [<Ref id={c.settlement_id} />, <Enum value={c.link_type} />, other && other.country_id !== s.country_id ? <Ref id={other.country_id} /> : <span className="muted">same</span>];
                 })}
@@ -89,7 +92,8 @@ export function SettlementPage({ settlement: s }: { settlement: Settlement }) {
             rows={s.points_of_interest.map((poi) => [
               <span title={poi.id}>{poi.name}</span>, <Enum value={poi.type} />,
               poi.owner_npc_id ? <Ref id={poi.owner_npc_id} /> : <span className="muted">-</span>,
-              <span className="small">{poi.description}</span>,
+              // Descriptions name the owner, so they wait until the owner is known.
+              !poi.owner_npc_id || isKnown(poi.owner_npc_id) ? <span className="small">{poi.description}</span> : <span className="muted">?</span>,
             ])}
           />
         </Section>
@@ -110,7 +114,7 @@ export function SettlementPage({ settlement: s }: { settlement: Settlement }) {
             {s.organizations_present.length > 0 && (
               <Table
                 head={['Organization', 'Type', 'Presence']}
-                rows={s.organizations_present.map((id) => {
+                rows={s.organizations_present.filter(isKnown).map((id) => {
                   const o = bundle.organizations[id];
                   return [<Ref id={id} />, <Enum value={o.org_type} />, <Enum value={o.presence.find((p) => p.settlement_id === s.id)!.strength} />];
                 })}
@@ -121,12 +125,17 @@ export function SettlementPage({ settlement: s }: { settlement: Settlement }) {
 
         <Section title={`People (${people.length})`} wide>
           <Table
-            head={['Name', 'Category', 'Occupation', 'Species', 'Leads', 'Workplace']}
-            rows={people.map((n) => [
-              <Ref id={n.id} />, <Enum value={n.npc_category} />, <Enum value={n.occupation} />, <Ref id={n.species_id} />,
-              n.leads.length > 0 ? <RefList ids={n.leads.map((l) => l.entity_id)} /> : <span className="muted">-</span>,
-              n.workplace_poi_id ? s.points_of_interest.find((p) => p.id === n.workplace_poi_id)?.name : <span className="muted">-</span>,
-            ])}
+            head={explore ? ['Name', 'Occupation', 'Species', 'Leads', 'Workplace'] : ['Name', 'Category', 'Occupation', 'Species', 'Leads', 'Workplace']}
+            rows={people.filter((n) => isKnown(n.id)).map((n) => {
+              const leads = n.leads.filter((l) => !explore || l.public);
+              return [
+                <Ref id={n.id} />, ...(explore ? [] : [<Enum value={n.npc_category} />]),
+                <Known id={n.id} group="role"><Enum value={n.occupation} /></Known>,
+                <Known id={n.id} group="appearance"><Ref id={n.species_id} /></Known>,
+                <Known id={n.id} group="role">{leads.length > 0 ? <RefList ids={leads.map((l) => l.entity_id)} /> : <span className="muted">-</span>}</Known>,
+                <Known id={n.id} group="role">{n.workplace_poi_id ? s.points_of_interest.find((p) => p.id === n.workplace_poi_id)?.name : <span className="muted">-</span>}</Known>,
+              ];
+            })}
           />
         </Section>
 
@@ -144,5 +153,6 @@ export function SettlementPage({ settlement: s }: { settlement: Settlement }) {
 
       <RawJson data={s} />
     </article>
+    </KnowScope>
   );
 }

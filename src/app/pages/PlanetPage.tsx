@@ -7,14 +7,17 @@ import { Enum, EnumList, Field, RawJson, Scale, Section, ShareBar, Table } from 
 import { Ref, RefList } from '../components/Ref';
 import { HistoryTable, Prose, ReligionTable, RumorTable, SpeciesTable } from '../components/Shared';
 import { useBundle } from '../context';
+import { Known, KnowScope, useKnow } from '../know';
 import { capitalize, formatHours, formatPopulation, formatTemp } from '../format';
 
 export function PlanetPage() {
   const { bundle } = useBundle();
+  const { isKnown } = useKnow();
   const p = bundle.planet;
   const countries = Object.values(bundle.countries);
 
   return (
+    <KnowScope id={p.id}>
     <article className="entity-page">
       <header className="entity-header">
         <div className="entity-kind">Planet</div>
@@ -108,10 +111,13 @@ export function PlanetPage() {
         <Section title="Countries" wide>
           <Table
             head={['Country', 'Government', 'Ruler', 'Capital', 'Population', 'Area', 'Stability', 'Tech']}
-            rows={countries.map((c) => [
-              <Ref id={c.id} />, <Enum value={c.government_type} />, c.ruler_npc_id ? <Ref id={c.ruler_npc_id} /> : '-',
-              c.capital_settlement_id ? <Ref id={c.capital_settlement_id} /> : '-',
-              formatPopulation(c.population), <ShareBar share={c.area_share} />, <Enum value={c.stability} />, c.tech_level,
+            rows={countries.filter((c) => isKnown(c.id)).map((c) => [
+              <Ref id={c.id} />, <Known id={c.id} group="government"><Enum value={c.government_type} /></Known>,
+              <Known id={c.id} group="ruler">{c.ruler_npc_id ? <Ref id={c.ruler_npc_id} /> : '-'}</Known>,
+              <Known id={c.id} group="ruler">{c.capital_settlement_id ? <Ref id={c.capital_settlement_id} /> : '-'}</Known>,
+              <Known id={c.id} group="population">{formatPopulation(c.population)}</Known>,
+              <Known id={c.id} group="territory"><ShareBar share={c.area_share} /></Known>,
+              <Known id={c.id} group="government"><Enum value={c.stability} /></Known>, <Known id={c.id} group="tech">{c.tech_level}</Known>,
             ])}
           />
         </Section>
@@ -161,5 +167,6 @@ export function PlanetPage() {
 
       <RawJson data={p} />
     </article>
+    </KnowScope>
   );
 }

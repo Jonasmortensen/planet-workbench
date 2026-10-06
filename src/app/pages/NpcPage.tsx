@@ -4,16 +4,19 @@ import { Ref, RefList } from '../components/Ref';
 import { MotiveView } from '../components/Relations';
 import { HistoryTable, Prose, ReferencedBy, RumorTable } from '../components/Shared';
 import { useBundle } from '../context';
+import { KnowScope, useKnow } from '../know';
 import { humanize } from '../format';
 
 export function NpcPage({ npc: n }: { npc: Npc }) {
   const { bundle } = useBundle();
+  const { isKnown, explore } = useKnow();
   const settlement = bundle.settlements[n.settlement_id];
   const species = bundle.species[n.species_id];
   const workplace = n.workplace_poi_id ? settlement.points_of_interest.find((p) => p.id === n.workplace_poi_id) : null;
   const event = n.current_event_involvement ? settlement.current_events.find((e) => e.id === n.current_event_involvement) : null;
 
   return (
+    <KnowScope id={n.id}>
     <article className="entity-page">
       <header className="entity-header">
         <div className="entity-kind">NPC · {n.npc_category}</div>
@@ -22,15 +25,19 @@ export function NpcPage({ npc: n }: { npc: Npc }) {
           {species.name} {humanize(n.occupation).toLowerCase()}, {n.age} ({n.age_category.replace(/_/g, ' ')}) · lives in <Ref id={n.settlement_id} />
         </div>
         <Prose tagline={n.tagline} description={n.description} />
-        {n.backstory && <div className="prose"><p>{n.backstory}</p></div>}
-        {n.sample_greeting && <div className="prose"><p className="greeting">“{n.sample_greeting}”</p></div>}
+        {/* Backstory and greeting summarize private facts; the explorer learns them through dialogue instead. */}
+        {!explore && n.backstory && <div className="prose"><p>{n.backstory}</p></div>}
+        {!explore && n.sample_greeting && <div className="prose"><p className="greeting">“{n.sample_greeting}”</p></div>}
       </header>
 
       <div className="sections">
         <Section title="Identity">
           <Field label="Name">{n.name}</Field>
           <Field label="Given / family">{n.given_name} / {n.family_name || <span className="muted">none</span>}</Field>
-          <Field label="Title or epithet">{n.title_or_epithet}</Field>
+          {/* A leadership title is public only if a public role goes with it; an epithet is always public. */}
+          <Field label="Title or epithet">
+            {!explore || n.title_or_epithet.startsWith('the ') || n.leads.some((l) => l.public) ? n.title_or_epithet : ''}
+          </Field>
           <Field label="Species"><Ref id={n.species_id} /></Field>
           <Field label="Native tongue"><Ref id={n.language_id} /></Field>
           <Field label="Age">{n.age} <span className="muted">· {n.age_category.replace(/_/g, ' ')} (lifespan {species.lifespan_years})</span></Field>
@@ -45,7 +52,7 @@ export function NpcPage({ npc: n }: { npc: Npc }) {
             {n.leads.length > 0 && (
               <Table
                 head={['Entity', 'Type', 'Public']}
-                rows={n.leads.map((l) => [<Ref id={l.entity_id} icon />, <Enum value={l.entity_type} />, l.public ? 'public' : <span className="chip att-hostile">hidden</span>])}
+                rows={n.leads.filter((l) => !explore || (l.public && isKnown(l.entity_id))).map((l) => [<Ref id={l.entity_id} icon />, <Enum value={l.entity_type} />, l.public ? 'public' : <span className="chip att-hostile">hidden</span>])}
               />
             )}
           </Field>
@@ -93,7 +100,7 @@ export function NpcPage({ npc: n }: { npc: Npc }) {
             ? (
               <Table
                 head={['Person', 'Is their', 'Note', 'Lives in']}
-                rows={n.relationships.map((r) => [
+                rows={n.relationships.filter((r) => isKnown(r.npc_id)).map((r) => [
                   <Ref id={r.npc_id} />, <Enum value={r.type} />, <Enum value={r.note_key} />, <Ref id={bundle.npcs[r.npc_id].settlement_id} />,
                 ])}
               />
@@ -121,5 +128,6 @@ export function NpcPage({ npc: n }: { npc: Npc }) {
       </div>
       <RawJson data={n} />
     </article>
+    </KnowScope>
   );
 }

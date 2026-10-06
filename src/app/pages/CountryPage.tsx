@@ -6,14 +6,17 @@ import { Ref, RefList } from '../components/Ref';
 import { RelationTable } from '../components/Relations';
 import { HistoryTable, Prose, ReferencedBy, ReligionTable, RumorTable, SpeciesTable } from '../components/Shared';
 import { useBundle } from '../context';
+import { Known, KnowScope, useKnow } from '../know';
 import { capitalize, formatPopulation, formatYearsAgo } from '../format';
 
 export function CountryPage({ country: c }: { country: Country }) {
   const { bundle } = useBundle();
+  const { isKnown } = useKnow();
   const settlements = Object.values(bundle.settlements).filter((s) => s.country_id === c.id);
   const settled = settlements.reduce((a, s) => a + s.population, 0);
 
   return (
+    <KnowScope id={c.id}>
     <article className="entity-page">
       <header className="entity-header">
         <div className="entity-kind">Country</div>
@@ -99,9 +102,12 @@ export function CountryPage({ country: c }: { country: Country }) {
         <Section title="Settlements" wide>
           <Table
             head={['Settlement', 'Type', 'Population', 'Biome', 'Mood', 'Founded']}
-            rows={settlements.map((s) => [
-              <Ref id={s.id} />, <Enum value={s.settlement_type} />, formatPopulation(s.population), <Enum value={s.biome} />,
-              <Enum value={s.mood} />, formatYearsAgo(s.founding_date),
+            rows={settlements.filter((s) => isKnown(s.id)).map((s) => [
+              <Ref id={s.id} />, <Known id={s.id} group="appearance"><Enum value={s.settlement_type} /></Known>,
+              <Known id={s.id} group="appearance">{formatPopulation(s.population)}</Known>,
+              <Known id={s.id} group="appearance"><Enum value={s.biome} /></Known>,
+              <Known id={s.id} group="appearance"><Enum value={s.mood} /></Known>,
+              <Known id={s.id} group="history">{formatYearsAgo(s.founding_date)}</Known>,
             ])}
           />
         </Section>
@@ -120,5 +126,6 @@ export function CountryPage({ country: c }: { country: Country }) {
 
       <RawJson data={c} />
     </article>
+    </KnowScope>
   );
 }

@@ -1,15 +1,18 @@
 import type { HistoricalEvent, ReligionShare, Rumor, SpeciesShare } from '../../generator';
 import { eventOwner, useBundle } from '../context';
+import { useKnow } from '../know';
 import { formatYearsAgo } from '../format';
 import { Enum, Section, ShareBar, Table } from './Fields';
 import { Ref, RefList } from './Ref';
 
 export function SpeciesTable({ shares }: { shares: SpeciesShare[] }) {
-  return <Table head={['Species', 'Share']} rows={shares.map((s) => [<Ref id={s.species_id} />, <ShareBar share={s.share} />])} />;
+  const { isKnown } = useKnow();
+  return <Table head={['Species', 'Share']} rows={shares.filter((s) => isKnown(s.species_id)).map((s) => [<Ref id={s.species_id} />, <ShareBar share={s.share} />])} />;
 }
 
 export function ReligionTable({ shares }: { shares: ReligionShare[] }) {
-  return <Table head={['Faith', 'Share']} rows={shares.map((r) => [<Ref id={r.religion_id} />, <ShareBar share={r.share} />])} />;
+  const { isKnown } = useKnow();
+  return <Table head={['Faith', 'Share']} rows={shares.filter((r) => isKnown(r.religion_id)).map((r) => [<Ref id={r.religion_id} />, <ShareBar share={r.share} />])} />;
 }
 
 export function HistoryTable({ events }: { events: HistoricalEvent[] }) {
@@ -42,6 +45,9 @@ export function RumorTable({ rumors }: { rumors: Rumor[] }) {
 
 /** Rendered prose block shown at the top of every entity page. */
 export function Prose({ tagline, description }: { tagline: string; description: string }) {
+  // Prose summarizes everything about an entity, so it would leak unknown facts in the explorer.
+  const { explore } = useKnow();
+  if (explore) return null;
   if (!tagline && !description) {
     return <div className="prose"><p className="muted">No prose rendered.</p></div>;
   }

@@ -4,15 +4,18 @@ import { Ref } from '../components/Ref';
 import { MotiveView, RelationTable } from '../components/Relations';
 import { HistoryTable, Prose, ReferencedBy, RumorTable } from '../components/Shared';
 import { useBundle } from '../context';
+import { Known, KnowScope, useKnow } from '../know';
 import { formatYearsAgo } from '../format';
 
 export function OrganizationPage({ org: o }: { org: Organization }) {
   const { bundle } = useBundle();
+  const { isKnown, explore } = useKnow();
   const leader = o.leader_npc_id ? bundle.npcs[o.leader_npc_id] : null;
   const leadEntry = leader?.leads.find((l) => l.entity_id === o.id);
   const agendaDiffers = JSON.stringify(o.stated_goal) !== JSON.stringify(o.true_goal);
 
   return (
+    <KnowScope id={o.id}>
     <article className="entity-page">
       <header className="entity-header">
         <div className="entity-kind">Organization · {o.org_type.replace(/_/g, ' ')} · {o.scope_level} scope</div>
@@ -43,7 +46,7 @@ export function OrganizationPage({ org: o }: { org: Organization }) {
           <Field label="Presence">
             <Table
               head={['Settlement', 'Country', 'Strength']}
-              rows={o.presence.map((p) => [<Ref id={p.settlement_id} />, <Ref id={bundle.settlements[p.settlement_id].country_id} />, <Enum value={p.strength} />])}
+              rows={o.presence.filter((p) => isKnown(p.settlement_id)).map((p) => [<Ref id={p.settlement_id} />, <Ref id={bundle.settlements[p.settlement_id].country_id} />, <Enum value={p.strength} />])}
             />
           </Field>
         </Section>
@@ -51,7 +54,7 @@ export function OrganizationPage({ org: o }: { org: Organization }) {
         <Section title="Leadership">
           <Field label="Leader title">{o.leader_title}</Field>
           <Field label="Leader">
-            {leader && <><Ref id={leader.id} />{leadEntry && !leadEntry.public && <span className="chip att-hostile" style={{ marginLeft: 6 }}>hidden</span>}</>}
+            {leader && (!explore || leadEntry?.public) && <><Ref id={leader.id} />{leadEntry && !leadEntry.public && <span className="chip att-hostile" style={{ marginLeft: 6 }}>hidden</span>}</>}
           </Field>
           <Field label="Structure"><Enum value={o.structure} /></Field>
           <Field label="Ranks">{o.ranks.join(' → ')}</Field>
@@ -80,9 +83,12 @@ export function OrganizationPage({ org: o }: { org: Organization }) {
         <Section title={`Members (${o.member_npc_ids.length})`} wide>
           <Table
             head={['Member', 'Lives in', 'Occupation', 'Role']}
-            rows={o.member_npc_ids.map((id) => {
+            rows={o.member_npc_ids.filter((id) => isKnown(id) && (!explore || id !== o.leader_npc_id || !!leadEntry?.public)).map((id) => {
               const n = bundle.npcs[id];
-              return [<Ref id={id} />, <Ref id={n.settlement_id} />, <Enum value={n.occupation} />, id === o.leader_npc_id ? <strong>{o.leader_title}</strong> : <Enum value={n.role_type} />];
+              return [
+                <Ref id={id} />, <Ref id={n.settlement_id} />, <Known id={id} group="role"><Enum value={n.occupation} /></Known>,
+                id === o.leader_npc_id ? <strong>{o.leader_title}</strong> : explore ? <span className="muted">member</span> : <Enum value={n.role_type} />,
+              ];
             })}
           />
         </Section>
@@ -100,5 +106,6 @@ export function OrganizationPage({ org: o }: { org: Organization }) {
       </div>
       <RawJson data={o} />
     </article>
+    </KnowScope>
   );
 }
